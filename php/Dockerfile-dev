@@ -1,0 +1,23 @@
+FROM php:fpm-buster
+RUN apt-get update
+
+RUN apt-get install -y zip
+RUN apt-get install -y unzip
+RUN apt-get install -y zlib1g-dev
+RUN apt-get install -y libicu-dev
+RUN apt-get install -y libpq-dev
+RUN apt-get install -y libonig-dev
+RUN apt-get install -y libxml2-dev
+RUN apt-get install -y git
+
+RUN docker-php-ext-install opcache
+RUN docker-php-ext-install intl
+RUN docker-php-ext-install pdo_mysql
+RUN pecl install APCu
+RUN docker-php-ext-enable apcu
+RUN pecl install xdebug
+RUN docker-php-ext-enable xdebug
+
+RUN curl -sS https://getcomposer.org/installer | php \
+    && mv composer.phar /usr/local/bin/composer \
+    && chmod +x /usr/local/bin/composer
