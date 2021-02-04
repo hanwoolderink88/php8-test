@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace TestingTimes\Http\Response;
 
@@ -17,7 +18,7 @@ class JsonResponse implements ResponseInterface
     use ResponseDecoratorTrait;
 
     /**
-     * @param string|array|object $body
+     * @param mixed $body
      * @param int $status
      * @param array|string[] $headers
      * @param string $version
@@ -25,7 +26,7 @@ class JsonResponse implements ResponseInterface
      * @throws JsonException
      */
     public function __construct(
-        string|array|object $body,
+        mixed $body,
         int $status = 200,
         array $headers = ['Content-Type' => 'application/json'],
         $version = '1.1',

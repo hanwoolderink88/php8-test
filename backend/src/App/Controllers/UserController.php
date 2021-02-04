@@ -6,10 +6,10 @@ namespace TestingTimes\App\Controllers;
 use JetBrains\PhpStorm\Pure;
 use Psr\Http\Message\ResponseInterface;
 use stdClass;
+use TestingTimes\Http\Contracts\RequestContract;
 use TestingTimes\Http\Response\JsonResponse;
 use TestingTimes\Http\Response\Response;
 use TestingTimes\Routing\Attributes\RouteResource;
-use TestingTimes\Routing\Interfaces\ResourceControllerInterface;
 
 /**
  * Class OrderController
@@ -17,7 +17,7 @@ use TestingTimes\Routing\Interfaces\ResourceControllerInterface;
  * @package App\Controllers
  */
 #[RouteResource('api/users')]
-class UserController implements ResourceControllerInterface
+class UserController
 {
     public function index(): ResponseInterface
     {
@@ -29,9 +29,13 @@ class UserController implements ResourceControllerInterface
         return new JsonResponse($body);
     }
 
-    public function post(): ResponseInterface
+    public function post(RequestContract $request): ResponseInterface
     {
-        return new Response(null, 201);
+        $fooBar = $request->post('foo[*].bar');
+        $hello = $request->query('hello');
+        $type = $request->header('content-type');
+
+        return new JsonResponse($fooBar, 201);
     }
 
     public function get(string $id): ResponseInterface

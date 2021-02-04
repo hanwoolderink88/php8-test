@@ -10,11 +10,19 @@
     }
   ],
   "minimum-stability": "dev",
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/hanwoolderink88/container"
+    }
+  ],
   "require": {
     "php": "^8.0",
     "psr/container": "^1.0",
     "psr/http-server-handler": "^1.0",
-    "nyholm/psr7": "^1.3"
+    "nyholm/psr7": "^1.3",
+    "hanwoolderink88/container": "dev-master",
+    "mtdowling/jmespath.php": "2.6.x-dev"
   },
   "autoload": {
     "psr-4": {

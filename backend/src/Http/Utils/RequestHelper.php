@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace TestingTimes\Http\Utils;
 
@@ -14,20 +15,15 @@ class RequestHelper
      */
     public static function getRequestHeaders(): array
     {
-        // only when using apache
-        if (function_exists('apache_request_headers')) {
-            return (array) apache_request_headers();
-        }
-
-        // else we get them from the server super global
+        $nonParsed = $_SERVER;
         $headers = [];
 
-        foreach ($_SERVER as $key => $value) {
+        foreach ($nonParsed as $key => $value) {
             if (substr($key, 0, 5) <> 'HTTP_') {
                 continue;
             }
             $header = str_replace(' ', '-', ucwords(str_replace('_', ' ', strtolower(substr($key, 5)))));
-            $headers[$header] = $value;
+            $headers[strtolower($header)] = $value;
         }
 
         return $headers;
