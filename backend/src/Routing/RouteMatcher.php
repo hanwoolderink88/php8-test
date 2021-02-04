@@ -103,7 +103,7 @@ class RouteMatcher implements RequestHandlerInterface
 
         header("Location: {$http}://{$host}/{$uri}", true, $permanent ? 301 : 302);
 
-        return $this->callCallback($route, explode('/', $uri));
+        return ($this->callCallback($route, explode('/', $uri)))->withStatus($permanent ? 301 : 302);
     }
 
     /**

@@ -6,10 +6,12 @@ namespace TestingTimes\App\Controllers;
 use JetBrains\PhpStorm\Pure;
 use Psr\Http\Message\ResponseInterface;
 use stdClass;
+use TestingTimes\Config\Config;
 use TestingTimes\Http\Contracts\RequestContract;
 use TestingTimes\Http\Response\JsonResponse;
 use TestingTimes\Http\Response\Response;
 use TestingTimes\Routing\Attributes\RouteResource;
+use TestingTimes\Routing\RouteMatcher;
 
 /**
  * Class OrderController
@@ -29,18 +31,19 @@ class UserController
         return new JsonResponse($body);
     }
 
-    public function post(RequestContract $request): ResponseInterface
+    public function post(RequestContract $request, Config $config): ResponseInterface
     {
+        $config = $config->get('FOO');
         $fooBar = $request->post('foo[*].bar');
         $hello = $request->query('hello');
         $type = $request->header('content-type');
 
-        return new JsonResponse($fooBar, 201);
+        return new JsonResponse(get_defined_vars(), 201);
     }
 
-    public function get(string $id): ResponseInterface
+    public function get(string $id, RouteMatcher $matcher): ResponseInterface
     {
-        return new JsonResponse($this->testUser($id));
+        return $matcher->redirect('api/users', [], true);
     }
 
     public function update(string $id): ResponseInterface
