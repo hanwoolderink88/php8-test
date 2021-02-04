@@ -96,7 +96,6 @@ class RouteMatcher implements RequestHandlerInterface
             throw new RouterMatchException('No route found to redirect to with name ' . $routePath);
         }
 
-
         $http = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
         $host = $_SERVER['HTTP_HOST'];
         $uri = $route->getPathFilledIn($params);

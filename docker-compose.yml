@@ -1,5 +1,18 @@
 version: "3.8"
 services:
+  db:
+    build:
+      dockerfile: Dockerfile
+      context: ./mysql
+    command: mysqld --sql_mode=""
+    ports:
+      - '3306:3306'
+    volumes:
+      - ./mysql/.mysql-data:/var/lib/mysql:cached
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+
+
   web:
     image: nginx
     ports:
@@ -8,6 +21,8 @@ services:
     - ./nginx/sites:/etc/nginx/conf.d
     - ./logs/nginx:/var/log/nginx
     - ./backend:/var/www/backend
+
+
   backend:
     build:
       context: .
@@ -15,3 +30,4 @@ services:
     volumes:
     - ./backend:/var/www/backend
     - ./php/xdebug.ini:/usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
+

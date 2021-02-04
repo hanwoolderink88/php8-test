@@ -6,6 +6,7 @@ namespace TestingTimes\Http\Request;
 use JetBrains\PhpStorm\Pure;
 use JmesPath\Env;
 use Nyholm\Psr7\ServerRequest;
+use Nyholm\Psr7\Uri;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UriInterface;
@@ -32,6 +33,10 @@ class Request implements RequestInterface, RequestContract
     {
         $this->validateBody($body, $headers);
 
+        if (!$uri instanceof UriInterface) {
+            $uri = new Uri($uri);
+        }
+
         $message = new ServerRequest($method, $uri, $headers, $body, $version);
         $messageWithQuery = $message->withQueryParams($this->parseQueryParamsToArray($uri->getQuery()));
 
@@ -46,7 +51,12 @@ class Request implements RequestInterface, RequestContract
     protected function validateBody(StreamInterface|string|null $body, array $headers)
     {
         if ($this->isJsonRequest($headers)) {
-            json_decode($body, true, JSON_THROW_ON_ERROR);
+            if ($body instanceof StreamInterface) {
+                $strBody = $body->__toString();
+                json_decode($strBody, true, JSON_THROW_ON_ERROR);
+            } else {
+                json_decode($body, true, JSON_THROW_ON_ERROR);
+            }
         }
 
         // todo: maybe xml etc parsing

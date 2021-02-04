@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace TestingTimes\Http\Utils;
 
+use Nyholm\Psr7\Stream;
+
 /**
  * Class Request
  *
@@ -27,5 +29,14 @@ class RequestHelper
         }
 
         return $headers;
+    }
+
+    /**
+     * todo: return $_POST in some cases like form posting
+     * @return false|string
+     */
+    public static function getRequestBody()
+    {
+        return Stream::create(fopen('php://input', 'r+'));
     }
 }

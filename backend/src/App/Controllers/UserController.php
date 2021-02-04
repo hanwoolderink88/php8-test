@@ -3,15 +3,15 @@ declare(strict_types=1);
 
 namespace TestingTimes\App\Controllers;
 
-use JetBrains\PhpStorm\Pure;
+use Doctrine\ORM\EntityManager;
 use Psr\Http\Message\ResponseInterface;
-use stdClass;
+use TestingTimes\App\Entities\User;
 use TestingTimes\Config\Config;
 use TestingTimes\Http\Contracts\RequestContract;
+use TestingTimes\Http\Exceptions\HttpNotFoundException;
 use TestingTimes\Http\Response\JsonResponse;
 use TestingTimes\Http\Response\Response;
 use TestingTimes\Routing\Attributes\RouteResource;
-use TestingTimes\Routing\RouteMatcher;
 
 /**
  * Class OrderController
@@ -21,14 +21,13 @@ use TestingTimes\Routing\RouteMatcher;
 #[RouteResource('api/users')]
 class UserController
 {
-    public function index(): ResponseInterface
+    public function index(EntityManager $entityManager): ResponseInterface
     {
-        $body = [];
-        for ($i = 0; $i < 20; $i++) {
-            $body[] = (fn() => $this->testUser($i))();
-        }
+        $users = $entityManager
+            ->getRepository(User::class)
+            ->findAll();
 
-        return new JsonResponse($body);
+        return new JsonResponse($users);
     }
 
     public function post(RequestContract $request, Config $config): ResponseInterface
@@ -41,9 +40,17 @@ class UserController
         return new JsonResponse(get_defined_vars(), 201);
     }
 
-    public function get(string $id, RouteMatcher $matcher): ResponseInterface
+    public function get(EntityManager $entityManager, string $id): ResponseInterface
     {
-        return $matcher->redirect('api/users', [], true);
+        $user = $entityManager
+            ->getRepository(User::class)
+            ->find($id);
+
+        if (!$user) {
+            throw new HttpNotFoundException();
+        }
+
+        return new JsonResponse($user);
     }
 
     public function update(string $id): ResponseInterface
@@ -54,14 +61,5 @@ class UserController
     public function delete(string $id): ResponseInterface
     {
         return new Response("deleted user with id {$id}", 200);
-    }
-
-    #[Pure] private function testUser($id)
-    {
-        $user = new stdClass();
-        $user->id = (int) $id;
-        $user->name = 'John Doe';
-
-        return $user;
     }
 }
