@@ -11,7 +11,9 @@ use TestingTimes\Routing\Attributes\Route;
  */
 class Router
 {
-    /** @var Route[] */
+    /**
+     * @var Route[]
+     */
     protected array $routes = [];
 
     /**
@@ -44,6 +46,10 @@ class Router
         return $this;
     }
 
+    /**
+     * @param Route $route
+     * @return $this
+     */
     public function removeRoute(Route $route): Router
     {
         // todo: use collections instead of plain arrays
@@ -67,8 +73,8 @@ class Router
      */
     #[Pure] public function getRouteByPath(string $routePath): ?Route
     {
-        foreach ($this->routes as $route){
-            if($routePath === $route->getPath()){
+        foreach ($this->routes as $route) {
+            if ($routePath === $route->getPath()) {
                 return $route;
             }
         }

@@ -10,9 +10,7 @@ use Exception;
  */
 class HttpNotFoundException extends Exception
 {
-    /** The error message */
     protected $message = 'not found';
 
-    /** The error code */
     protected $code = 404;
 }

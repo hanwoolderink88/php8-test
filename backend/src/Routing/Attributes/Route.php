@@ -10,16 +10,22 @@ use TestingTimes\Routing\RoutePart;
 /**
  * A route is path/method combination and a class/method combination resolving to each other..
  */
-#[Attribute]
+#[Attribute(Attribute::TARGET_METHOD)]
 class Route
 {
-    /** @var mixed|array|callable */
+    /**
+     * @var mixed|array|callable
+     */
     protected $callable;
 
-    /** @var bool */
+    /**
+     * @var bool
+     */
     protected bool $wildcard;
 
-    /** @var RoutePart[] */
+    /**
+     * @var RoutePart[]
+     */
     protected array $routeParts = [];
 
     /**

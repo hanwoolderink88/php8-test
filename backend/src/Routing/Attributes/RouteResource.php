@@ -10,7 +10,7 @@ use Attribute;
  *
  * @package TestingTimes\Routing
  */
-#[Attribute]
+#[Attribute(Attribute::TARGET_CLASS)]
 class RouteResource
 {
     /**

@@ -3,32 +3,35 @@ declare(strict_types=1);
 
 namespace TestingTimes\Routing\Interfaces;
 
-use Nyholm\Psr7\Response;
+use Psr\Http\Message\ResponseInterface;
 
 interface ResourceControllerInterface
 {
     /**
-     * @return Response
+     * @return ResponseInterface
      */
-    public function index(): Response;
+    public function index(): ResponseInterface;
 
     /**
-     * @return Response
+     * @return ResponseInterface
      */
-    public function post(): Response;
+    public function post(): ResponseInterface;
 
     /**
-     * @return Response
+     * @param string $id
+     * @return ResponseInterface
      */
-    public function get(string $id): Response;
+    public function get(string $id): ResponseInterface;
 
     /**
-     * @return Response
+     * @param string $id
+     * @return ResponseInterface
      */
-    public function update(string $id): Response;
+    public function update(string $id): ResponseInterface;
 
     /**
-     * @return Response
+     * @param string $id
+     * @return ResponseInterface
      */
-    public function delete(string $id): Response;
+    public function delete(string $id): ResponseInterface;
 }

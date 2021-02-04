@@ -10,7 +10,6 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use ReflectionException;
-use ReflectionFunction;
 use ReflectionMethod;
 use TestingTimes\Routing\Attributes\Route;
 use TestingTimes\Routing\Exceptions\RouterMatchException;
@@ -40,21 +39,6 @@ class RouteMatcher implements RequestHandlerInterface
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        //        $matchedRoute = $this->match($request);
-        //
-        //        $class = $matchedRoute->getCallable()[0];
-        //        $method = $matchedRoute->getCallable()[1];
-        //
-        //        // todo: handle DI in class constructor and method
-        //        // todo: handle wildcard insertion in method call
-        //        $response = (new $class())->$method();
-        //
-        //        if (!$response instanceof ResponseInterface) {
-        //            throw new \Exception("response of {$class}::{$method}() should be of type ResponseInterface.");
-        //        }
-        //
-        //        return $response;
-
         // standardise path
         $path = rtrim(ltrim($request->getUri()->getPath(), '/'), '/');
         $pathParts = explode('/', $path);
@@ -69,19 +53,6 @@ class RouteMatcher implements RequestHandlerInterface
 
         return $this->callCallback($route, $pathParts);
     }
-
-    //    protected function match(ServerRequestInterface $request)
-    //    {
-    //        foreach ($this->router->getRoutes() as $route) {
-    //            $normalized = urldecode(ltrim(rtrim((string)$request->getUri(), '/'), '/'));
-    //            if ($normalized === $route->getPath() && in_array($request->getMethod(), $route->getMethods())) {
-    //                return $route;
-    //            }
-    //        }
-    //
-    //        // todo: more precise exception
-    //        throw new HttpNotFoundException("no route found for \"/{$normalized}\"");
-    //    }
 
     /**
      * todo: should be definable
@@ -177,7 +148,7 @@ class RouteMatcher implements RequestHandlerInterface
      * @param string $method
      * @return Route|null
      */
-    protected function findMatch(string $path, array $pathParts, string $method): ?Route
+    #[Pure] protected function findMatch(string $path, array $pathParts, string $method): ?Route
     {
         $routes = $this->router->getRoutes();
         $match = $this->findDirectMatch($path, $method, $routes);

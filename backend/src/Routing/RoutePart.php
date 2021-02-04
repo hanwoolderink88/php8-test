@@ -20,22 +20,23 @@ class RoutePart
 
     /**
      * RoutePart constructor.
+     *
      * @param string $part
      */
     public function __construct(string $part)
     {
         if (str_contains($part, '{')) {
             $this->isWildcard = true;
-            $this->string = (string)str_replace(['{', '}'], '', $part);
+            $this->string = (string) str_replace(['{', '}'], '', $part);
         } else {
             $this->string = $part;
         }
     }
 
     /**
-     * @return string|string[]
+     * @return string
      */
-    public function getString()
+    public function getString(): string
     {
         return $this->string;
     }

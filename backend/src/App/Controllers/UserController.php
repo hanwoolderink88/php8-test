@@ -3,7 +3,11 @@ declare(strict_types=1);
 
 namespace TestingTimes\App\Controllers;
 
-use Nyholm\Psr7\Response;
+use JetBrains\PhpStorm\Pure;
+use Psr\Http\Message\ResponseInterface;
+use stdClass;
+use TestingTimes\Http\Response\JsonResponse;
+use TestingTimes\Http\Response\Response;
 use TestingTimes\Routing\Attributes\RouteResource;
 use TestingTimes\Routing\Interfaces\ResourceControllerInterface;
 
@@ -15,28 +19,42 @@ use TestingTimes\Routing\Interfaces\ResourceControllerInterface;
 #[RouteResource('api/users')]
 class UserController implements ResourceControllerInterface
 {
-    public function index(): Response
+    public function index(): ResponseInterface
     {
-        return new Response(200, [], 'list of users');
+        $body = [];
+        for ($i = 0; $i < 20; $i++) {
+            $body[] = (fn() => $this->testUser($i))();
+        }
+
+        return new JsonResponse($body);
     }
 
-    public function post(): Response
+    public function post(): ResponseInterface
     {
-        return new Response(200, [], 'user details');
+        return new Response(null, 201);
     }
 
-    public function get(string $id): Response
+    public function get(string $id): ResponseInterface
     {
-        return new Response(200, [], 'create user ' . $id);
+        return new JsonResponse($this->testUser($id));
     }
 
-    public function update(string $id): Response
+    public function update(string $id): ResponseInterface
     {
-        return new Response(200, [], 'update user ' . $id);
+        return new Response("updated user with id {$id}", 200);
     }
 
-    public function delete(string $id): Response
+    public function delete(string $id): ResponseInterface
     {
-        return new Response(200, [], 'delete user ' . $id);
+        return new Response("deleted user with id {$id}", 200);
+    }
+
+    #[Pure] private function testUser($id)
+    {
+        $user = new stdClass();
+        $user->id = (int) $id;
+        $user->name = 'John Doe';
+
+        return $user;
     }
 }

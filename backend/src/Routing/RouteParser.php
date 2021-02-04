@@ -3,22 +3,36 @@ declare(strict_types=1);
 
 namespace TestingTimes\Routing;
 
+use JetBrains\PhpStorm\Pure;
 use ReflectionClass;
 use ReflectionException;
 use TestingTimes\Routing\Attributes\Route;
 use TestingTimes\Routing\Attributes\RouteResource;
+use TestingTimes\Routing\Exceptions\RouterAddRouteException;
 
 /**
  * The routeParser can parse defined routes into actual route objects and add it to the router
  */
 class RouteParser
 {
-    /** @var Router */
+    /**
+     * @var Router
+     */
     protected Router $router;
 
-    public function __construct(Router $router)
+    /**
+     * @var string
+     */
+    protected string $resourceIdentifier;
+
+    /**
+     * @param Router $router
+     * @param string $resourceIdentifier
+     */
+    public function __construct(Router $router, string $resourceIdentifier = 'id')
     {
         $this->router = $router;
+        $this->resourceIdentifier = $resourceIdentifier;
     }
 
     /**
@@ -44,42 +58,30 @@ class RouteParser
         return $this;
     }
 
+    /**
+     * @param string $className
+     * @return $this
+     * @throws ReflectionException
+     * @throws RouterAddRouteException
+     */
     public function byResource(string $className): self
     {
         $reflect = new ReflectionClass($className);
         $attributes = $reflect->getAttributes(RouteResource::class);
+
         foreach ($attributes as $attribute) {
             /** @var RouteResource $resource */
             $resource = $attribute->newInstance();
             $methods = $resource->getMethods();
             foreach ($methods as $method) {
                 if (!method_exists($className, $method)) {
-                    throw new \Exception("method {$method}() for resource {$className}::{$method}() does not exist");
+                    throw new RouterAddRouteException(
+                        "method {$method}() for resource {$className}::{$method}() does not exist"
+                    );
                 }
 
                 // add the route by reflection
-                $base = $resource->getBaseUri();
-                switch ($method) {
-                    case 'index':
-                    case 'list':
-                    case 'post':
-                    case 'create':
-                        $path = $base;
-                        break;
-                    case 'get':
-                    case 'show':
-                    case 'detail':
-                    case 'details':
-                    case 'update':
-                    case 'put':
-                    case 'patch':
-                    case 'delete':
-                    case 'remove':
-                        $path = $base . '/{id}';
-                        break;
-                    default:
-                        $path = $base;
-                }
+                $path = $this->getPath($method, $resource->getBaseUri());
 
                 $route = new Route($path, [$this->mapFunctionNamesToHttpMethods($method)]);
                 $route->setCallable([$className, $method]);
@@ -90,33 +92,34 @@ class RouteParser
         return $this;
     }
 
-    protected function mapFunctionNamesToHttpMethods(string $functionName)
+    /**
+     * @param string $functionName
+     * @return string
+     * @throws RouterAddRouteException
+     */
+    #[Pure] protected function mapFunctionNamesToHttpMethods(string $functionName): string
     {
-        $map = [
-            // all get list
-            'index' => 'GET',
-            'list' => 'GET',
-            // all get single
-            'get' => 'GET',
-            'show' => 'GET',
-            'detail' => 'GET',
-            'details' => 'GET',
-            // all post
-            'post' => 'POST',
-            'create' => 'POST',
-            'make' => 'POST',
-            'insert' => 'POST',
-            // all put/patch
-            'put' => 'PUT',
+        return match (strtolower($functionName)) {
+            'index', 'list', 'get', 'show', 'detail', 'details' => 'GET',
+            'post', 'create', 'make', 'insert' => 'POST',
+            'put', 'update' => 'PUT',
             'patch' => 'PATCH',
-            'update' => 'PUT',
-            // all delete
-            'delete' => 'DELETE',
-            'remove' => 'DELETE',
-        ];
+            'delete', 'remove' => 'DELETE',
+            default => throw new RouterAddRouteException("Controller method with name {$functionName} is not allowed"),
+        };
+    }
 
-        $var = $map[strtolower($functionName)] ?? null;
-
-        return strtoupper($var);
+    /**
+     * @param string $method
+     * @param string $base
+     * @return string
+     */
+    #[Pure] protected function getPath(string $method, string $base): string
+    {
+        return match ($method) {
+            'get', 'show', 'detail', 'details', 'update', 'put', 'patch', 'delete', 'remove' => $base . '/{id}',
+            'index', 'list', 'post', 'create' => $base,
+            default => $base,
+        };
     }
 }
