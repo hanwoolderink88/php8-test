@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace TestingTimes\Routing;
 
 use JetBrains\PhpStorm\Pure;
-use Nyholm\Psr7\Response;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -48,20 +47,10 @@ class RouteMatcher implements RequestHandlerInterface
 
         // return a 404 if the route is not found
         if ($route === null) {
-            return $this->getResponse404();
+            throw new RouterMatchException('Route not found', 404);
         }
 
         return $this->callCallback($route, $pathParts);
-    }
-
-    /**
-     * todo: should be definable
-     *
-     * @return ResponseInterface|null
-     */
-    public function getResponse404(): ?ResponseInterface
-    {
-        return new Response(404, [], 'not found');
     }
 
     /**

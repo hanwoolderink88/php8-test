@@ -42,7 +42,7 @@ trait ResponseDecoratorTrait
      * @param ResponseInterface $response
      * @return self
      */
-    public function withResponse(ResponseInterface $response): self
+    public function withResponse(ResponseInterface $response): static
     {
         $new = clone $this;
         $new->message = $response;
@@ -61,7 +61,7 @@ trait ResponseDecoratorTrait
     /**
      * {@inheritdoc}
      */
-    public function withStatus($code, $reasonPhrase = ''): self
+    public function withStatus($code, $reasonPhrase = ''): static
     {
         $new = clone $this;
         $new->message = $this->getResponse()->withStatus($code, $reasonPhrase);

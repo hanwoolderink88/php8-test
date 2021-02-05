@@ -49,7 +49,7 @@ class UserController
             ->find($id);
 
         if (!$user) {
-            throw new HttpNotFoundException();
+            throw new HttpNotFoundException('user not found');
         }
 
         return new JsonResponse($user);

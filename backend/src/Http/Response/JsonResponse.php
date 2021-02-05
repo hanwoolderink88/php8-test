@@ -5,6 +5,7 @@ namespace TestingTimes\Http\Response;
 
 use JsonException;
 use JsonSerializable;
+use Nyholm\Psr7\Stream;
 use Psr\Http\Message\ResponseInterface;
 use TestingTimes\Http\Traits\ResponseDecoratorTrait;
 
@@ -50,5 +51,30 @@ class JsonResponse implements ResponseInterface
         }
 
         $this->message = new \Nyholm\Psr7\Response($status, $headers, $body, $version, $reason);
+    }
+
+    /**
+     * @param mixed $body
+     * @return $this
+     * @throws JsonException
+     */
+    public function withBody($body): self
+    {
+        if ($body instanceof JsonSerializable) {
+            $body = json_encode($body->jsonSerialize());
+        }
+
+        if (is_object($body)) {
+            $body = (array) $body;
+        }
+
+        if (is_array($body)) {
+            $body = json_encode($body, JSON_THROW_ON_ERROR);
+        }
+
+        $new = clone $this;
+        $new->message = $this->message->withBody(Stream::create($body));
+
+        return $new;
     }
 }

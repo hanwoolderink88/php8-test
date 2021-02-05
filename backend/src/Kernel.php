@@ -27,7 +27,9 @@ use TestingTimes\App\Controllers\ProductController;
 use TestingTimes\App\Controllers\UserController;
 use TestingTimes\Config\Config;
 use TestingTimes\Config\Env;
+use TestingTimes\ErrorHandling\ErrorHandler;
 use TestingTimes\Http\Contracts\RequestContract;
+use TestingTimes\Http\Response\JsonResponse;
 use TestingTimes\Routing\RouteMatcher;
 use TestingTimes\Routing\RouteParser;
 use TestingTimes\Routing\Router;
@@ -55,7 +57,8 @@ class Kernel implements RequestHandlerInterface
 
         // todo: when do you invalid this cache ?
         $env = $_SERVER['APP_ENV'] ?? 'production';
-        if ($env !== 'local' && $cachePool->hasItem('bootstrap')) {
+        // todo: cache hard disabled...
+        if (false && $env !== 'local' && $cachePool->hasItem('bootstrap')) {
             $container = $cachePool->get('bootstrap');
         } else {
             $container = new Container();
@@ -72,7 +75,10 @@ class Kernel implements RequestHandlerInterface
             $container->addService($config);
             $container->addService($env);
             $container->addService($entityManager);
-            $container->addService($routeMatcher, null, true);
+            $container->addService($routeMatcher);
+            $container->addServiceReference(ErrorHandler::class);
+
+            $container->sortIndex();
 
             // todo: add all classes in src to the container as a ref with $container->addServiceReference()
 
@@ -92,9 +98,17 @@ class Kernel implements RequestHandlerInterface
     {
         $this->container->addService($request, [RequestContract::class]);
 
-        $routeMatcher = $this->container->get(RouteMatcher::class);
+        try {
+            $routeMatcher = $this->container->get(RouteMatcher::class);
 
-        return $routeMatcher->handle($request);
+            return $routeMatcher->handle($request);
+        } catch (\Throwable $throwable) {
+            /** @var ErrorHandler $handler */
+            $handler = $this->container->get(ErrorHandler::class);
+
+            // todo: second param should be dynamic based on config i guess...
+            return $handler->handle($throwable, new JsonResponse(''));
+        }
     }
 
     /**

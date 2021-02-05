@@ -27,7 +27,8 @@
     "doctrine/orm": "2.8.x-dev",
     "doctrine/migrations": "3.0.x-dev",
     "cache/apcu-adapter": "1.1.x-dev",
-    "cache/filesystem-adapter": "1.1.x-dev"
+    "cache/filesystem-adapter": "1.1.x-dev",
+    "laravel/helpers": "1.x-dev"
   },
   "autoload": {
     "psr-4": {
