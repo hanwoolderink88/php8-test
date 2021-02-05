@@ -4,6 +4,7 @@ namespace TestingTimes\App\Entities;
 
 use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
+use Doctrine\ORM\Mapping\GeneratedValue;
 use Doctrine\ORM\Mapping\Id;
 use Doctrine\ORM\Mapping\Table;
 use TestingTimes\App\Traits\JsonSerializable;
@@ -18,10 +19,11 @@ class User implements \JsonSerializable
 
     /**
      * @Id()
-     * @Column(type="integer")
+     * @GeneratedValue(strategy="UUID")
+     * @Column(type="string")
      * @var int
      */
-    private int $id;
+    private string $id;
 
     /**
      * @Column(type="string")
@@ -29,9 +31,9 @@ class User implements \JsonSerializable
     private string $name;
 
     /**
-     * @return int
+     * @return string
      */
-    public function getId(): int
+    public function getId(): string
     {
         return $this->id;
     }

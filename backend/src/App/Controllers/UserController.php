@@ -30,14 +30,17 @@ class UserController
         return new JsonResponse($users);
     }
 
-    public function post(RequestContract $request, Config $config): ResponseInterface
+    public function post(EntityManager $entityManager, RequestContract $request): ResponseInterface
     {
-        $config = $config->get('FOO');
-        $fooBar = $request->post('foo[*].bar');
-        $hello = $request->query('hello');
-        $type = $request->header('content-type');
+        $name = $request->post('name');
 
-        return new JsonResponse(get_defined_vars(), 201);
+        $user = new User();
+        $user->setName($name);
+
+        $entityManager->persist($user);
+        $entityManager->flush();
+
+        return new JsonResponse($user, 201);
     }
 
     public function get(EntityManager $entityManager, string $id): ResponseInterface

@@ -13,6 +13,7 @@ RUN apt-get install -y git
 RUN docker-php-ext-install opcache
 RUN docker-php-ext-install intl
 RUN docker-php-ext-install pdo_mysql
+RUN docker-php-ext-install pdo_pgsql
 RUN pecl install APCu
 RUN docker-php-ext-enable apcu
 RUN pecl install xdebug
@@ -21,3 +22,13 @@ RUN docker-php-ext-enable xdebug
 RUN curl -sS https://getcomposer.org/installer | php \
     && mv composer.phar /usr/local/bin/composer \
     && chmod +x /usr/local/bin/composer
+
+COPY ./php/php.ini /usr/local/etc/php/php.ini
+COPY ./php/xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
+
+RUN mkdir /var/www/backend
+WORKDIR /var/www/backend
+
+RUN useradd -ms /bin/bash user
+RUN chown -R user /var/www/backend
+USER user

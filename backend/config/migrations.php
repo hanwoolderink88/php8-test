@@ -12,7 +12,7 @@ return [
     ],
 
     'migrations_paths' => [
-        'MyProject\Migrations' => dirname(__DIR__) . '/migrations',
+        'TestingTimes\Migrations' => dirname(__DIR__) . '/migrations/' . $_SERVER['DATABASE_DRIVER'],
     ],
 
     'all_or_nothing' => true,
