@@ -6,6 +6,7 @@ namespace TestingTimes\App\Controllers;
 use Doctrine\ORM\EntityManager;
 use Psr\Http\Message\ResponseInterface;
 use TestingTimes\App\Entities\User;
+use TestingTimes\App\Repository\UserRepository;
 use TestingTimes\Http\Contracts\RequestContract;
 use TestingTimes\Http\Exceptions\HttpNotFoundException;
 use TestingTimes\Http\Response\JsonResponse;
@@ -20,13 +21,9 @@ use TestingTimes\Routing\Attributes\RouteResource;
 #[RouteResource('api/users')]
 class UserController
 {
-    public function index(EntityManager $entityManager): ResponseInterface
+    public function index(UserRepository $repository): ResponseInterface
     {
-        $users = $entityManager
-            ->getRepository(User::class)
-            ->findAll();
-
-        return new JsonResponse($users);
+        return new JsonResponse($repository->index());
     }
 
     public function post(EntityManager $entityManager, RequestContract $request): ResponseInterface
@@ -42,11 +39,9 @@ class UserController
         return new JsonResponse($user, 201);
     }
 
-    public function get(EntityManager $entityManager, string $id): ResponseInterface
+    public function get(UserRepository $repository, string $id): ResponseInterface
     {
-        $user = $entityManager
-            ->getRepository(User::class)
-            ->find($id);
+        $user = $repository->getRepository()->find($id);
 
         if (!$user) {
             throw new HttpNotFoundException('user not found');

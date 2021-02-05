@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace TestingTimes\ErrorHandling;
 
@@ -42,6 +43,7 @@ class ErrorHandler
             $response = new Response();
         }
 
+        $statuscode = $exception->getCode() > 0 ? $exception->getCode() : 500;
         $body = [
             'message' => $exception->getMessage(),
         ];
@@ -57,14 +59,14 @@ class ErrorHandler
             /** @var JsonResponse $response */
             return $response
                 ->withBody($body)
-                ->withStatus($exception->getCode())
+                ->withStatus($statuscode)
                 ;
         }
 
         // todo: this can be a bit better i think...
         return $response
             ->withBody(Stream::create($exception->__toString()))
-            ->withStatus($exception->getCode())
+            ->withStatus($statuscode)
             ;
     }
 }

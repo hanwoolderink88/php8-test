@@ -1,4 +1,7 @@
 <?php
+declare(strict_types=1);
+
+/** @var \TestingTimes\Config\Env $env */
 
 // needed config file for doctrine-migrations
 

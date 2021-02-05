@@ -1,5 +1,6 @@
 #!/usr/bin/env php
 <?php
+declare(strict_types=1);
 
 require dirname(__DIR__).'/vendor/autoload.php';
 
@@ -49,69 +50,63 @@ use TestingTimes\Kernel;
 
 $kernel = new Kernel();
 $kernel->bootstrap();
+
 $container = $kernel->getContainer();
-
 $application = new Application();
-
 $entityManager = $container->get(EntityManager::class);
 
-$helperSet = new HelperSet(
-    [
-        'db' => new ConnectionHelper($entityManager->getConnection()),
-        'em' => new EntityManagerHelper($entityManager),
-    ]
-);
+$helperSet = new HelperSet([
+    'db' => new ConnectionHelper($entityManager->getConnection()),
+    'em' => new EntityManagerHelper($entityManager),
+]);
 
 $application->setHelperSet($helperSet);
 
-$dependencyFactory = DependencyFactory::fromEntityManager(
-    new ConfigurationFileWithFallback('config/migrations.php'),
-    new ExistingEntityManager($entityManager)
-);
+$dependencyFactory = DependencyFactory::fromEntityManager(new ConfigurationFileWithFallback('config/migrations.php'),
+    new ExistingEntityManager($entityManager));
 
 // ... register commands
-$application->addCommands(
-    [
-        // DBAL Commands
-        new Doctrine\DBAL\Tools\Console\Command\ImportCommand(),
-        new ReservedWordsCommand(),
-        new RunSqlCommand(),
+$application->addCommands([
+    // DBAL Commands
+    new Doctrine\DBAL\Tools\Console\Command\ImportCommand(),
+    new ReservedWordsCommand(),
+    new RunSqlCommand(),
 
-        // ORM Commands
-        new CollectionRegionCommand(),
-        new EntityRegionCommand(),
-        new MetadataCommand(),
-        new QueryCommand(),
-        new QueryRegionCommand(),
-        new ResultCommand(),
-        new CreateCommand(),
-        new UpdateCommand(),
-        new DropCommand(),
-        new EnsureProductionSettingsCommand(),
-        new ConvertDoctrine1SchemaCommand(),
-        new GenerateRepositoriesCommand(),
-        new GenerateEntitiesCommand(),
-        new GenerateProxiesCommand(),
-        new ConvertMappingCommand(),
-        new RunDqlCommand(),
-        new ValidateSchemaCommand(),
-        new InfoCommand(),
-        new MappingDescribeCommand(),
+    // ORM Commands
+    new CollectionRegionCommand(),
+    new EntityRegionCommand(),
+    new MetadataCommand(),
+    new QueryCommand(),
+    new QueryRegionCommand(),
+    new ResultCommand(),
+    new CreateCommand(),
+    new UpdateCommand(),
+    new DropCommand(),
+    new EnsureProductionSettingsCommand(),
+    new ConvertDoctrine1SchemaCommand(),
+    new GenerateRepositoriesCommand(),
+    new GenerateEntitiesCommand(),
+    new GenerateProxiesCommand(),
+    new ConvertMappingCommand(),
+    new RunDqlCommand(),
+    new ValidateSchemaCommand(),
+    new InfoCommand(),
+    new MappingDescribeCommand(),
 
-        // doctrine migrations
-        new CurrentCommand($dependencyFactory),
-        new DumpSchemaCommand($dependencyFactory),
-        new ExecuteCommand($dependencyFactory),
-        new GenerateCommand($dependencyFactory),
-        new LatestCommand($dependencyFactory),
-        new MigrateCommand($dependencyFactory),
-        new RollupCommand($dependencyFactory),
-        new StatusCommand($dependencyFactory),
-        new VersionCommand($dependencyFactory),
-        new UpToDateCommand($dependencyFactory),
-        new SyncMetadataCommand($dependencyFactory),
-        new ListCommand($dependencyFactory),
-        new DiffCommand($dependencyFactory)
-    ]
-);
+    // doctrine migrations
+    new CurrentCommand($dependencyFactory),
+    new DumpSchemaCommand($dependencyFactory),
+    new ExecuteCommand($dependencyFactory),
+    new GenerateCommand($dependencyFactory),
+    new LatestCommand($dependencyFactory),
+    new MigrateCommand($dependencyFactory),
+    new RollupCommand($dependencyFactory),
+    new StatusCommand($dependencyFactory),
+    new VersionCommand($dependencyFactory),
+    new UpToDateCommand($dependencyFactory),
+    new SyncMetadataCommand($dependencyFactory),
+    new ListCommand($dependencyFactory),
+    new DiffCommand($dependencyFactory)
+]);
+
 $application->run();

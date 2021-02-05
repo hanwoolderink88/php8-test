@@ -248,7 +248,8 @@ class RouteMatcher implements RequestHandlerInterface
 
             if ($value === null && $isNullable === false) {
                 $name = $param['name'];
-                $msg = "Callback function has argument with name \"{$name}\" but no wildcard or DI service was found";
+                $msg = "{$route->getCallable()[0]}::{$route->getCallable()[1]}()"
+                    . " has parameter {$param['type']} {$name} but no wildcard or DI service was found";
                 throw new RouterMatchException($msg);
             }
 

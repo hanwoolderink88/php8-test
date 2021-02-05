@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace TestingTimes\Config;
 
@@ -20,7 +21,7 @@ class Config
     /**
      * @throws Exception
      */
-    public function __construct()
+    public function __construct(Env $env)
     {
         $configDir = dirname(__DIR__, 2) . '/config';
         if ($handle = opendir($configDir)) {

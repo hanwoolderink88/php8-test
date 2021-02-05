@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace TestingTimes;
 
@@ -6,12 +7,14 @@ use Cache\Adapter\Apcu\ApcuCachePool;
 use Cache\Adapter\Common\AbstractCachePool;
 use Cache\Adapter\Filesystem\FilesystemCachePool;
 use Doctrine\Common\Cache\ApcuCache;
+use Doctrine\Common\Cache\FilesystemCache;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\ORMException;
 use Doctrine\ORM\Tools\Setup;
 use Dotenv\Dotenv;
 use HanWoolderink88\Container\Container;
 use HanWoolderink88\Container\Exception\ContainerAddServiceException;
+use JsonException;
 use League\Flysystem\Adapter\Local;
 use League\Flysystem\Filesystem;
 use Psr\Container\ContainerInterface;
@@ -25,6 +28,7 @@ use TestingTimes\App\Controllers\OrderController;
 use TestingTimes\App\Controllers\PostController;
 use TestingTimes\App\Controllers\ProductController;
 use TestingTimes\App\Controllers\UserController;
+use TestingTimes\App\Repository\UserRepository;
 use TestingTimes\Config\Config;
 use TestingTimes\Config\Env;
 use TestingTimes\ErrorHandling\ErrorHandler;
@@ -33,6 +37,7 @@ use TestingTimes\Http\Response\JsonResponse;
 use TestingTimes\Routing\RouteMatcher;
 use TestingTimes\Routing\RouteParser;
 use TestingTimes\Routing\Router;
+use Throwable;
 
 /**
  * Class Kernel
@@ -55,18 +60,16 @@ class Kernel implements RequestHandlerInterface
         $cachePool = $this->loadCache();
         $this->loadDotEnv();
 
-        // todo: when do you invalid this cache ?
-        $env = $_SERVER['APP_ENV'] ?? 'production';
-        // todo: cache hard disabled...
-        if (false && $env !== 'local' && $cachePool->hasItem('bootstrap')) {
+        $useCache = $_SERVER['APP_CACHE_ENABLED'] === 'true';
+        if ($useCache && $cachePool->hasItem('bootstrap')) {
             $container = $cachePool->get('bootstrap');
         } else {
             $container = new Container();
 
-            $router = $this->loadRouter();
-            $config = $this->loadConfig();
-
             $env = $this->loadEnv();
+            $config = $this->loadConfig($env);
+            $router = $this->loadRouter();
+
             $entityManager = $this->loadPersistenceLayer($env, $config);
 
             $routeMatcher = new RouteMatcher($router);
@@ -81,8 +84,11 @@ class Kernel implements RequestHandlerInterface
             $container->sortIndex();
 
             // todo: add all classes in src to the container as a ref with $container->addServiceReference()
+            $container->addServiceReference(UserRepository::class);
 
-            $cachePool->save($cachePool->getItem('bootstrap')->set($container));
+            if ($useCache) {
+                $cachePool->save($cachePool->getItem('bootstrap')->set($container));
+            }
         }
 
         $container->addService($cachePool);
@@ -91,8 +97,9 @@ class Kernel implements RequestHandlerInterface
     }
 
     /**
-     * @param ServerRequestInterface $request
+     * @param  ServerRequestInterface  $request
      * @return ResponseInterface
+     * @throws JsonException
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
@@ -102,7 +109,7 @@ class Kernel implements RequestHandlerInterface
             $routeMatcher = $this->container->get(RouteMatcher::class);
 
             return $routeMatcher->handle($request);
-        } catch (\Throwable $throwable) {
+        } catch (Throwable $throwable) {
             /** @var ErrorHandler $handler */
             $handler = $this->container->get(ErrorHandler::class);
 
@@ -116,25 +123,25 @@ class Kernel implements RequestHandlerInterface
      */
     protected function loadDotEnv(): void
     {
-        if (file_exists(dirname(__DIR__) . '/.env')) {
+        if (file_exists(dirname(__DIR__).'/.env')) {
             $dotenv = Dotenv::createImmutable(dirname(__DIR__));
             $dotenv->load();
         }
     }
 
     /**
+     * Todo: this should be a file looup based on defined dirs in config a config file
+     *
      * @return Router
      * @throws Routing\Exceptions\RouterAddRouteException
      * @throws ReflectionException
      */
     protected function loadRouter(): Router
     {
-        // Create router and add routes.. this can be cached..
         $router = new Router();
         $router->flushRoutes();
         $routeParser = new RouteParser($router);
-        $routeParser
-            ->byClassMethods(IndexController::class)
+        $routeParser->byClassMethods(IndexController::class)
             ->byClassMethods(OrderController::class)
             ->byResource(UserController::class)
             ->byClassMethods(PostController::class)
@@ -146,9 +153,9 @@ class Kernel implements RequestHandlerInterface
     /**
      * @return Config
      */
-    protected function loadConfig(): Config
+    protected function loadConfig(Env $env): Config
     {
-        return new Config();
+        return new Config($env);
     }
 
     /**
@@ -160,30 +167,29 @@ class Kernel implements RequestHandlerInterface
     }
 
     /**
-     * @param Env $env
-     * @param Config $config
+     * @param  Env  $env
+     * @param  Config  $config
      * @return EntityManager
      * @throws ORMException
      */
     protected function loadPersistenceLayer(Env $env, Config $config): EntityManager
     {
-        switch (strtolower($config->get('cache.driver'))) {
-            case 'apcu':
-                $cache = new ApcuCache();
-                break;
-            default:
-                $cache = null;
+        if ($env->get('APP_CACHE_ENABLED')) {
+            $cache = match (strtolower($config->get('cache.driver'))) {
+                'apcu' => new ApcuCache(),
+                default => new FilesystemCache(dirname(__DIR__).'/storage/cache'),
+            };
+        } else {
+            $cache = null;
         }
 
-        $emConfig = Setup::createAnnotationMetadataConfiguration(
-            [__DIR__ . "/App/Entities"],
-            $env->get('DOCTRINE_DEV_MODE', false),
-            $env->get('DOCTRINE_PROXY_DIR'),
+        $emConfig = Setup::createAnnotationMetadataConfiguration([__DIR__."/App/Entities"],
+            $config->get('doctrine.dev_mode'),
+            $config->get('doctrine.proxy_dir'),
             $cache,
-            $env->get('DOCTRINE_USE_SIMPLE_ANNOTATION_READER', false)
-        );
+            $config->get('doctrine.use_simple_annotation_reader'));
 
-        $connection = ['url' => $env->get('DOCTRINE_URL')];
+        $connection = ['url' => $config->get('doctrine.url')];
 
         return EntityManager::create($connection, $emConfig);
     }
@@ -201,7 +207,7 @@ class Kernel implements RequestHandlerInterface
      */
     private function loadCache(): AbstractCachePool
     {
-        $fileLocation = dirname(__DIR__) . '/config/cache.php';
+        $fileLocation = dirname(__DIR__).'/config/cache.php';
         if (is_file($fileLocation)) {
             $config = include $fileLocation;
             $driver = $config['driver'] ?? 'filesystem';
@@ -214,7 +220,7 @@ class Kernel implements RequestHandlerInterface
                 return new ApcuCachePool();
             case 'filesystem':
             default:
-                $filesystemAdapter = new Local(dirname(__DIR__) . '/storage/');
+                $filesystemAdapter = new Local(dirname(__DIR__).'/storage/');
                 $filesystem = new Filesystem($filesystemAdapter);
 
                 return new FilesystemCachePool($filesystem);
