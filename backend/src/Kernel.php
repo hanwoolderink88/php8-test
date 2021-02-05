@@ -2,7 +2,10 @@
 
 namespace TestingTimes;
 
+use Cache\Adapter\Apcu\ApcuCachePool;
+use Doctrine\Common\Cache\ApcuCache;
 use Doctrine\ORM\EntityManager;
+use Doctrine\ORM\ORMException;
 use Doctrine\ORM\Tools\Setup;
 use Dotenv\Dotenv;
 use HanWoolderink88\Container\Container;
@@ -11,6 +14,8 @@ use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Psr\SimpleCache\InvalidArgumentException;
+use ReflectionException;
 use TestingTimes\App\Controllers\IndexController;
 use TestingTimes\App\Controllers\OrderController;
 use TestingTimes\App\Controllers\PostController;
@@ -35,28 +40,46 @@ class Kernel implements RequestHandlerInterface
      * Should go to its own class
      *
      * @throws ContainerAddServiceException
+     * @throws \Psr\Cache\InvalidArgumentException
+     * @throws InvalidArgumentException
      */
     public function bootstrap()
     {
-        $container = new Container();
-
+        $cachePool = $this->loadCache();
         $this->loadDotEnv();
-        $router = $this->loadRouter();
-        $config = $this->loadConfig();
-        $entityManager = $this->loadPersistenceLayer($config);
-        $routeMatcher = new RouteMatcher($router);
-        $routeMatcher->setContainer($container);
 
-        $container->addService($config);
-        $container->addService($entityManager);
-        $container->addService($routeMatcher, null, true);
+        // todo: when do you invalid this cache ?
+        $env = $_SERVER['APP_ENV'] ?? 'production';
+        if ($env !== 'local' && $cachePool->hasItem('bootstrap')) {
+            $container = $cachePool->get('bootstrap');
+        } else {
+            $container = new Container();
 
-        // todo: add all classes in src to the container as a ref with $container->addServiceReference()
-        // todo: maybe cache after this but how to know if any changes
+            $router = $this->loadRouter();
+            $config = $this->loadConfig();
+            $entityManager = $this->loadPersistenceLayer($config);
+
+            $routeMatcher = new RouteMatcher($router);
+            $routeMatcher->setContainer($container);
+
+            $container->addService($config);
+            $container->addService($entityManager);
+            $container->addService($routeMatcher, null, true);
+
+            // todo: add all classes in src to the container as a ref with $container->addServiceReference()
+
+            $cachePool->save($cachePool->getItem('bootstrap')->set($container));
+        }
+
+        $container->addService($cachePool);
 
         $this->container = $container;
     }
 
+    /**
+     * @param ServerRequestInterface $request
+     * @return ResponseInterface
+     */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $this->container->addService($request, [RequestContract::class]);
@@ -66,7 +89,10 @@ class Kernel implements RequestHandlerInterface
         return $routeMatcher->handle($request);
     }
 
-    protected function loadDotEnv()
+    /**
+     * @return void
+     */
+    protected function loadDotEnv(): void
     {
         if (file_exists(dirname(__DIR__) . '/.env')) {
             $dotenv = Dotenv::createImmutable(dirname(__DIR__));
@@ -74,7 +100,12 @@ class Kernel implements RequestHandlerInterface
         }
     }
 
-    protected function loadRouter()
+    /**
+     * @return Router
+     * @throws Routing\Exceptions\RouterAddRouteException
+     * @throws ReflectionException
+     */
+    protected function loadRouter(): Router
     {
         // Create router and add routes.. this can be cached..
         $router = new Router();
@@ -90,15 +121,22 @@ class Kernel implements RequestHandlerInterface
         return $router;
     }
 
-    protected function loadConfig()
+    /**
+     * @return Config
+     */
+    protected function loadConfig(): Config
     {
         return new Config();
     }
 
-    protected function loadPersistenceLayer($config)
+    /**
+     * @param $config
+     * @return EntityManager
+     * @throws ORMException
+     */
+    protected function loadPersistenceLayer($config): EntityManager
     {
-        // Create a simple "default" Doctrine ORM configuration for Annotations
-        $cache = null;
+        $cache = new ApcuCache();
         $emConfig = Setup::createAnnotationMetadataConfiguration(
             [__DIR__ . "/App/Entities"],
             $config->get('DOCTRINE_DEV_MODE', false),
@@ -111,7 +149,6 @@ class Kernel implements RequestHandlerInterface
             'url' => $config->get('DOCTRINE_URL', null),
         ];
 
-        // obtaining the entity manager
         return EntityManager::create($connection, $emConfig);
     }
 
@@ -121,5 +158,13 @@ class Kernel implements RequestHandlerInterface
     public function getContainer(): ContainerInterface
     {
         return $this->container;
+    }
+
+    /**
+     * @return ApcuCachePool
+     */
+    private function loadCache(): ApcuCachePool
+    {
+        return new ApcuCachePool();
     }
 }
