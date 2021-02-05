@@ -6,7 +6,6 @@ namespace TestingTimes\App\Controllers;
 use Doctrine\ORM\EntityManager;
 use Psr\Http\Message\ResponseInterface;
 use TestingTimes\App\Entities\User;
-use TestingTimes\Config\Config;
 use TestingTimes\Http\Contracts\RequestContract;
 use TestingTimes\Http\Exceptions\HttpNotFoundException;
 use TestingTimes\Http\Response\JsonResponse;

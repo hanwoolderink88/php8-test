@@ -33,6 +33,7 @@ class RequestHelper
 
     /**
      * todo: return $_POST in some cases like form posting
+     *
      * @return false|string
      */
     public static function getRequestBody()

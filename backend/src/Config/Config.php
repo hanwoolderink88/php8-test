@@ -16,7 +16,8 @@ class Config
         $this->items = $_ENV + $_SERVER;
     }
 
-    public function get(string $key, $fallback = null){
+    public function get(string $key, $fallback = null)
+    {
         return $this->items[$key] ?? $fallback;
     }
 

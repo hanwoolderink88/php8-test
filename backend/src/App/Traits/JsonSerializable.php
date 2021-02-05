@@ -6,8 +6,8 @@ trait JsonSerializable
 {
     public function jsonSerialize(): array
     {
-        $ra= [];
-        foreach ($this as $k => $v){
+        $ra = [];
+        foreach ($this as $k => $v) {
             $ra[$k] = $v;
         }
 
