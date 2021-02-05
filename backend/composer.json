@@ -24,7 +24,8 @@
     "hanwoolderink88/container": "dev-master",
     "mtdowling/jmespath.php": "2.6.x-dev",
     "vlucas/phpdotenv": "5.3.x-dev",
-    "doctrine/orm": "2.8.x-dev"
+    "doctrine/orm": "2.8.x-dev",
+    "doctrine/migrations": "3.0.x-dev"
   },
   "autoload": {
     "psr-4": {

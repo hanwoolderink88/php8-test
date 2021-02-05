@@ -114,4 +114,12 @@ class Kernel implements RequestHandlerInterface
         // obtaining the entity manager
         return EntityManager::create($connection, $emConfig);
     }
+
+    /**
+     * @return ContainerInterface
+     */
+    public function getContainer(): ContainerInterface
+    {
+        return $this->container;
+    }
 }
