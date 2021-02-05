@@ -4,3 +4,5 @@ vendor
 logs/
 .mysql-data
 .data
+cache/*
+cachegrind.out.*

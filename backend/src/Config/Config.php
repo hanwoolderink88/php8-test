@@ -2,6 +2,9 @@
 
 namespace TestingTimes\Config;
 
+use Exception;
+use JmesPath\Env as JsonPath;
+
 /**
  * Class Config
  *
@@ -9,20 +12,39 @@ namespace TestingTimes\Config;
  */
 class Config
 {
-    private array $items;
+    /**
+     * @var array
+     */
+    private array $configData;
 
+    /**
+     * @throws Exception
+     */
     public function __construct()
     {
-        $this->items = $_ENV + $_SERVER;
+        $configDir = dirname(__DIR__, 2) . '/config';
+        if ($handle = opendir($configDir)) {
+            while (false !== ($entry = readdir($handle))) {
+                if (stripos($entry, '.php') !== false) {
+                    $data = include $configDir . '/' . $entry;
+                    if (!is_array($data)) {
+                        throw new Exception("files in {$configDir} should return an array. {$entry} does not");
+                    }
+                    $name = str_replace('.php', '', $entry);
+                    $this->configData[$name] = $data;
+                }
+            }
+
+            closedir($handle);
+        }
     }
 
-    public function get(string $key, $fallback = null)
+    /**
+     * @param string $key
+     * @return mixed
+     */
+    public function get(string $key)
     {
-        return $this->items[$key] ?? $fallback;
-    }
-
-    public function set(string $key, mixed $value)
-    {
-        $this->items[$key] = $value;
+        return JsonPath::search($key, $this->configData);
     }
 }
