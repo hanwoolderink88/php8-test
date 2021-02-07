@@ -22,24 +22,9 @@ trait ResponseDecoratorTrait
     }
 
     /**
-     * Returns the decorated response.
-     * Since the underlying Response is immutable as well
-     * exposing it is not an issue, because it's state cannot be altered
-     *
-     * @return ResponseInterface
-     */
-    #[Pure] public function getResponse(): ResponseInterface
-    {
-        /** @var ResponseInterface $message */
-        $message = $this->getMessage();
-
-        return $message;
-    }
-
-    /**
      * Exchanges the underlying response with another.
      *
-     * @param ResponseInterface $response
+     * @param  ResponseInterface  $response
      * @return self
      */
     public function withResponse(ResponseInterface $response): static
@@ -56,6 +41,21 @@ trait ResponseDecoratorTrait
     public function getStatusCode(): int
     {
         return $this->getResponse()->getStatusCode();
+    }
+
+    /**
+     * Returns the decorated response.
+     * Since the underlying Response is immutable as well
+     * exposing it is not an issue, because it's state cannot be altered
+     *
+     * @return ResponseInterface
+     */
+    #[Pure] public function getResponse(): ResponseInterface
+    {
+        /** @var ResponseInterface $message */
+        $message = $this->getMessage();
+
+        return $message;
     }
 
     /**

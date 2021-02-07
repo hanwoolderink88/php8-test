@@ -94,7 +94,7 @@ trait UriDecorationTrait
     }
 
     /**
-     * @param string $scheme
+     * @param  string  $scheme
      * @return UriInterface
      */
     public function withScheme($scheme): UriInterface
@@ -107,8 +107,8 @@ trait UriDecorationTrait
     }
 
     /**
-     * @param string $user
-     * @param string|null $password
+     * @param  string  $user
+     * @param  string|null  $password
      * @return UriInterface
      */
     public function withUserInfo($user, $password = null): UriInterface
@@ -121,7 +121,7 @@ trait UriDecorationTrait
     }
 
     /**
-     * @param string $host
+     * @param  string  $host
      * @return UriInterface
      */
     public function withHost($host): UriInterface
@@ -134,7 +134,7 @@ trait UriDecorationTrait
     }
 
     /**
-     * @param int|null $port
+     * @param  int|null  $port
      * @return UriInterface
      */
     public function withPort($port): UriInterface
@@ -147,7 +147,7 @@ trait UriDecorationTrait
     }
 
     /**
-     * @param string $path
+     * @param  string  $path
      * @return UriInterface
      */
     public function withPath($path): UriInterface
@@ -160,7 +160,7 @@ trait UriDecorationTrait
     }
 
     /**
-     * @param string $query
+     * @param  string  $query
      * @return UriInterface
      */
     public function withQuery($query): UriInterface
@@ -173,7 +173,7 @@ trait UriDecorationTrait
     }
 
     /**
-     * @param string $fragment
+     * @param  string  $fragment
      * @return UriInterface
      */
     public function withFragment($fragment): UriInterface

@@ -14,8 +14,8 @@ use Attribute;
 class RouteResource
 {
     /**
-     * @param string $baseUri
-     * @param string[] $methods
+     * @param  string  $baseUri
+     * @param  string[]  $methods
      */
     public function __construct(
         protected string $baseUri,
@@ -32,7 +32,7 @@ class RouteResource
     }
 
     /**
-     * @param string $baseUri
+     * @param  string  $baseUri
      * @return RouteResource
      */
     public function setBaseUri(string $baseUri): RouteResource
@@ -51,7 +51,7 @@ class RouteResource
     }
 
     /**
-     * @param array|string[] $methods
+     * @param  array|string[]  $methods
      * @return RouteResource
      */
     public function setMethods(array $methods): RouteResource

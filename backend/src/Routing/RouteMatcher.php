@@ -24,14 +24,14 @@ class RouteMatcher implements RequestHandlerInterface
     protected ?ContainerInterface $container = null;
 
     /**
-     * @param Router $router
+     * @param  Router  $router
      */
     public function __construct(protected Router $router)
     {
     }
 
     /**
-     * @param ServerRequestInterface $request
+     * @param  ServerRequestInterface  $request
      * @return ResponseInterface
      * @throws ReflectionException
      * @throws RouterMatchException
@@ -54,49 +54,98 @@ class RouteMatcher implements RequestHandlerInterface
     }
 
     /**
-     * @return ContainerInterface|null
+     * @param  string  $path
+     * @param  string[]  $pathParts
+     * @param  string  $method
+     * @return Route|null
      */
-    public function getContainer(): ?ContainerInterface
+    #[Pure] protected function findMatch(string $path, array $pathParts, string $method): ?Route
     {
-        return $this->container ?? null;
-    }
-
-    /**
-     * @param ContainerInterface|null $container
-     */
-    public function setContainer(?ContainerInterface $container): void
-    {
-        $this->container = $container;
-    }
-
-    /**
-     * @param string $routePath
-     * @param string[] $params
-     * @param bool $permanent
-     * @return ResponseInterface
-     * @throws ReflectionException
-     * @throws RouterMatchException
-     */
-    public function redirect(string $routePath, array $params = [], bool $permanent = false): ResponseInterface
-    {
-        $route = $this->router->getRouteByPath($routePath);
-
-        if ($route === null) {
-            throw new RouterMatchException('No route found to redirect to with name ' . $routePath);
+        $routes = $this->router->getRoutes();
+        $match = $this->findDirectMatch($path, $method, $routes);
+        if ($match === null) {
+            $match = $this->findWildcardMatch($pathParts, $method, $routes);
         }
 
-        $http = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
-        $host = $_SERVER['HTTP_HOST'];
-        $uri = $route->getPathFilledIn($params);
-
-        header("Location: {$http}://{$host}/{$uri}", true, $permanent ? 301 : 302);
-
-        return ($this->callCallback($route, explode('/', $uri)))->withStatus($permanent ? 301 : 302);
+        return $match;
     }
 
     /**
-     * @param Route $route
-     * @param string[] $pathParts
+     * @param  string  $path
+     * @param  string  $method
+     * @param  Route[]  $routes
+     * @return Route|null
+     */
+    #[Pure] protected function findDirectMatch(string $path, string $method, array $routes): ?Route
+    {
+        foreach ($routes as $route) {
+            if ($route->getPath() === $path && in_array($method, $route->getMethods(), true)) {
+                return $route;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  string[]  $pathParts
+     * @param  string  $method
+     * @param  Route[]  $routes
+     * @return Route|null
+     */
+    #[Pure] protected function findWildcardMatch(array $pathParts, string $method, array $routes): ?Route
+    {
+        $pathPartCount = count($pathParts);
+        foreach ($routes as $route) {
+            if ($route->hasWildcard() && in_array($method, $route->getMethods(), true)) {
+                $parts = $route->getRouteParts();
+                $partsCount = count($parts);
+
+                // if the number of parts in both uri's is not the same it cannot be a match
+                if ($partsCount !== $pathPartCount) {
+                    continue;
+                }
+
+                // if all non wildcard parts match we have match
+                if ($this->uriPartsMatch($pathParts, $parts)) {
+                    return $route;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  string[]  $pathParts
+     * @param  RoutePart[]  $parts
+     * @return bool
+     */
+    #[Pure] protected function uriPartsMatch(array $pathParts, array $parts): bool
+    {
+        $i = 0;
+        foreach ($pathParts as $pathPart) {
+            $part = $parts[$i] ?? null;
+            $i++;
+
+            // if the part is a wildcard it does not have to match
+            if ($part->isWildcard()) {
+                continue;
+            }
+
+            // if the parts mismatch we do not have a match
+            if ($part->getString() !== $pathPart) {
+                return false;
+            }
+        }
+
+        // if all is good we have a match
+        return true;
+    }
+
+    /**
+     * @param  Route  $route
+     * @param  string[]  $pathParts
      * @return ResponseInterface
      * @throws ReflectionException
      * @throws RouterMatchException
@@ -131,98 +180,8 @@ class RouteMatcher implements RequestHandlerInterface
     }
 
     /**
-     * @param string $path
-     * @param string[] $pathParts
-     * @param string $method
-     * @return Route|null
-     */
-    #[Pure] protected function findMatch(string $path, array $pathParts, string $method): ?Route
-    {
-        $routes = $this->router->getRoutes();
-        $match = $this->findDirectMatch($path, $method, $routes);
-        if ($match === null) {
-            $match = $this->findWildcardMatch($pathParts, $method, $routes);
-        }
-
-        return $match;
-    }
-
-    /**
-     * @param string $path
-     * @param string $method
-     * @param Route[] $routes
-     * @return Route|null
-     */
-    #[Pure] protected function findDirectMatch(string $path, string $method, array $routes): ?Route
-    {
-        foreach ($routes as $route) {
-            if ($route->getPath() === $path && in_array($method, $route->getMethods(), true)) {
-                return $route;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @param string[] $pathParts
-     * @param string $method
-     * @param Route[] $routes
-     * @return Route|null
-     */
-    #[Pure] protected function findWildcardMatch(array $pathParts, string $method, array $routes): ?Route
-    {
-        $pathPartCount = count($pathParts);
-        foreach ($routes as $route) {
-            if ($route->hasWildcard() && in_array($method, $route->getMethods(), true)) {
-                $parts = $route->getRouteParts();
-                $partsCount = count($parts);
-
-                // if the number of parts in both uri's is not the same it cannot be a match
-                if ($partsCount !== $pathPartCount) {
-                    continue;
-                }
-
-                // if all non wildcard parts match we have match
-                if ($this->uriPartsMatch($pathParts, $parts)) {
-                    return $route;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @param string[] $pathParts
-     * @param RoutePart[] $parts
-     * @return bool
-     */
-    #[Pure] protected function uriPartsMatch(array $pathParts, array $parts): bool
-    {
-        $i = 0;
-        foreach ($pathParts as $pathPart) {
-            $part = $parts[$i] ?? null;
-            $i++;
-
-            // if the part is a wildcard it does not have to match
-            if ($part->isWildcard()) {
-                continue;
-            }
-
-            // if the parts mismatch we do not have a match
-            if ($part->getString() !== $pathPart) {
-                return false;
-            }
-        }
-
-        // if all is good we have a match
-        return true;
-    }
-
-    /**
-     * @param Route $route
-     * @param string[] $pathParts
+     * @param  Route  $route
+     * @param  string[]  $pathParts
      * @return mixed[]
      * @throws ReflectionException
      * @throws RouterMatchException
@@ -241,15 +200,16 @@ class RouteMatcher implements RequestHandlerInterface
             if ($isWildcardParam) {
                 // a wildcard param is defined in the route path by /{name}
                 $value = $wildcards[$param['name']] ?? null;
-            } else if ($this->container !== null && $this->container->has($param['type'])) {
-                // (johnny) Dep inject
-                $value = $this->container->get($param['type']);
+            } else {
+                if ($this->container !== null && $this->container->has($param['type'])) {
+                    // (johnny) Dep inject
+                    $value = $this->container->get($param['type']);
+                }
             }
 
             if ($value === null && $isNullable === false) {
                 $name = $param['name'];
-                $msg = "{$route->getCallable()[0]}::{$route->getCallable()[1]}()"
-                    . " has parameter {$param['type']} {$name} but no wildcard or DI service was found";
+                $msg = "{$route->getCallable()[0]}::{$route->getCallable()[1]}()"." has parameter {$param['type']} {$name} but no wildcard or DI service was found";
                 throw new RouterMatchException($msg);
             }
 
@@ -260,7 +220,7 @@ class RouteMatcher implements RequestHandlerInterface
     }
 
     /**
-     * @param Route $route
+     * @param  Route  $route
      * @return mixed[][]
      * @throws ReflectionException
      * @throws RouterMatchException
@@ -289,8 +249,8 @@ class RouteMatcher implements RequestHandlerInterface
     }
 
     /**
-     * @param string[] $pathParts
-     * @param RoutePart[] $routeParts
+     * @param  string[]  $pathParts
+     * @param  RoutePart[]  $routeParts
      * @return string[]
      */
     #[Pure] protected function getWildcardValues(array $pathParts, array $routeParts): array
@@ -305,5 +265,46 @@ class RouteMatcher implements RequestHandlerInterface
         }
 
         return $wildcards;
+    }
+
+    /**
+     * @return ContainerInterface|null
+     */
+    public function getContainer(): ?ContainerInterface
+    {
+        return $this->container ?? null;
+    }
+
+    /**
+     * @param  ContainerInterface|null  $container
+     */
+    public function setContainer(?ContainerInterface $container): void
+    {
+        $this->container = $container;
+    }
+
+    /**
+     * @param  string  $routePath
+     * @param  string[]  $params
+     * @param  bool  $permanent
+     * @return ResponseInterface
+     * @throws ReflectionException
+     * @throws RouterMatchException
+     */
+    public function redirect(string $routePath, array $params = [], bool $permanent = false): ResponseInterface
+    {
+        $route = $this->router->getRouteByPath($routePath);
+
+        if ($route === null) {
+            throw new RouterMatchException('No route found to redirect to with name '.$routePath);
+        }
+
+        $http = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+        $host = $_SERVER['HTTP_HOST'];
+        $uri = $route->getPathFilledIn($params);
+
+        header("Location: {$http}://{$host}/{$uri}", true, $permanent ? 301 : 302);
+
+        return ($this->callCallback($route, explode('/', $uri)))->withStatus($permanent ? 301 : 302);
     }
 }

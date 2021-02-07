@@ -48,7 +48,7 @@ class User implements \JsonSerializable
     }
 
     /**
-     * @param string $name
+     * @param  string  $name
      * @return User
      */
     public function setName(string $name): User

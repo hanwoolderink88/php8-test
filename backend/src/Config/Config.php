@@ -19,15 +19,17 @@ class Config
     private array $configData;
 
     /**
+     * env is being used in the config files so do no not remove
+     *
      * @throws Exception
      */
     public function __construct(Env $env)
     {
-        $configDir = dirname(__DIR__, 2) . '/config';
+        $configDir = dirname(__DIR__, 2).'/config';
         if ($handle = opendir($configDir)) {
             while (false !== ($entry = readdir($handle))) {
                 if (stripos($entry, '.php') !== false) {
-                    $data = include $configDir . '/' . $entry;
+                    $data = include $configDir.'/'.$entry;
                     if (!is_array($data)) {
                         throw new Exception("files in {$configDir} should return an array. {$entry} does not");
                     }
@@ -41,11 +43,14 @@ class Config
     }
 
     /**
-     * @param string $key
+     * @param  string  $key
+     * @param  null  $fallback
      * @return mixed
      */
-    public function get(string $key)
+    public function get(string $key, $fallback = null)
     {
-        return JsonPath::search($key, $this->configData);
+        $found = JsonPath::search($key, $this->configData);
+
+        return $found ?? $fallback;
     }
 }

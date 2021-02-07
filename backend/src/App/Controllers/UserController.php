@@ -9,6 +9,7 @@ use TestingTimes\App\Entities\User;
 use TestingTimes\App\Repository\UserRepository;
 use TestingTimes\Http\Contracts\RequestContract;
 use TestingTimes\Http\Exceptions\HttpNotFoundException;
+use TestingTimes\Http\Request\IndexRequest;
 use TestingTimes\Http\Response\JsonResponse;
 use TestingTimes\Http\Response\Response;
 use TestingTimes\Routing\Attributes\RouteResource;
@@ -21,9 +22,9 @@ use TestingTimes\Routing\Attributes\RouteResource;
 #[RouteResource('api/users')]
 class UserController
 {
-    public function index(UserRepository $repository): ResponseInterface
+    public function index(UserRepository $repository, IndexRequest $request): ResponseInterface
     {
-        return new JsonResponse($repository->index());
+        return new JsonResponse($repository->index($request->query('criteria', [])));
     }
 
     public function post(EntityManager $entityManager, RequestContract $request): ResponseInterface

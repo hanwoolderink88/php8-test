@@ -19,11 +19,11 @@ class JsonResponse implements ResponseInterface
     use ResponseDecoratorTrait;
 
     /**
-     * @param mixed $body
-     * @param int $status
-     * @param array|string[] $headers
-     * @param string $version
-     * @param string|null $reason
+     * @param  mixed  $body
+     * @param  int  $status
+     * @param  array|string[]  $headers
+     * @param  string  $version
+     * @param  string|null  $reason
      * @throws JsonException
      */
     public function __construct(
@@ -43,7 +43,7 @@ class JsonResponse implements ResponseInterface
         }
 
         if (is_object($body)) {
-            $body = (array) $body;
+            $body = (array)$body;
         }
 
         if (is_array($body)) {
@@ -54,7 +54,7 @@ class JsonResponse implements ResponseInterface
     }
 
     /**
-     * @param mixed $body
+     * @param  mixed  $body
      * @return $this
      * @throws JsonException
      */
@@ -65,7 +65,7 @@ class JsonResponse implements ResponseInterface
         }
 
         if (is_object($body)) {
-            $body = (array) $body;
+            $body = (array)$body;
         }
 
         if (is_array($body)) {

@@ -22,6 +22,14 @@ trait ServerRequestDecoratorTrait
     use RequestDecoratorTrait;
 
     /**
+     * @inheritdoc
+     */
+    public function getAttribute($name, $default = null)
+    {
+        return $this->getRequest()->getAttribute($name, $default);
+    }
+
+    /**
      * Returns the decorated request.
      * Since the underlying Request is immutable as well
      * exposing it is not an issue, because it's state cannot be altered
@@ -34,14 +42,6 @@ trait ServerRequestDecoratorTrait
         $message = $this->getMessage();
 
         return $message;
-    }
-
-    /**
-     * @inheritdoc
-     */
-    public function getAttribute($name, $default = null)
-    {
-        return $this->getRequest()->getAttribute($name, $default);
     }
 
     /**
@@ -93,18 +93,7 @@ trait ServerRequestDecoratorTrait
     }
 
     /**
-     * @inheritdoc
-     */
-    public function withAttribute($name, $value)
-    {
-        $new = clone $this;
-        $new->message = $this->getRequest()->withAttribute($name, $value);
-
-        return $new;
-    }
-
-    /**
-     * @param array $attributes
+     * @param  array  $attributes
      * @return ServerRequestInterface
      */
     public function withAttributes(array $attributes)
@@ -113,6 +102,17 @@ trait ServerRequestDecoratorTrait
         foreach ($attributes as $attribute => $value) {
             $new->message = $new->withAttribute($attribute, $value);
         }
+
+        return $new;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function withAttribute($name, $value)
+    {
+        $new = clone $this;
+        $new->message = $this->getRequest()->withAttribute($name, $value);
 
         return $new;
     }

@@ -29,20 +29,20 @@ class OrderController
     public function get(
         string $id
     ): Response {
-        return new Response(200, [], 'order details ' . $id);
+        return new Response(200, [], 'order details '.$id);
     }
 
     #[Route('api/orders/{id}', ['PUT', 'PATCH'])]
     public function update(
         string $id
     ): Response {
-        return new Response(200, [], 'update order ' . $id);
+        return new Response(200, [], 'update order '.$id);
     }
 
     #[Route('api/orders/{id}', ['DELETE'])]
     public function delete(
         string $id
     ): Response {
-        return new Response(200, [], 'delete order ' . $id);
+        return new Response(200, [], 'delete order '.$id);
     }
 }

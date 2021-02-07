@@ -31,7 +31,7 @@ trait UploadedFileDecoratorTrait
     }
 
     /**
-     * @param string $targetPath
+     * @param  string  $targetPath
      */
     public function moveTo($targetPath): void
     {

@@ -26,8 +26,8 @@ class RouteParser
     protected string $resourceIdentifier;
 
     /**
-     * @param Router $router
-     * @param string $resourceIdentifier
+     * @param  Router  $router
+     * @param  string  $resourceIdentifier
      */
     public function __construct(Router $router, string $resourceIdentifier = 'id')
     {
@@ -36,7 +36,7 @@ class RouteParser
     }
 
     /**
-     * @param string $className
+     * @param  string  $className
      * @return RouteParser
      * @throws ReflectionException
      */
@@ -59,7 +59,7 @@ class RouteParser
     }
 
     /**
-     * @param string $className
+     * @param  string  $className
      * @return $this
      * @throws ReflectionException
      * @throws RouterAddRouteException
@@ -75,9 +75,7 @@ class RouteParser
             $methods = $resource->getMethods();
             foreach ($methods as $method) {
                 if (!method_exists($className, $method)) {
-                    throw new RouterAddRouteException(
-                        "method {$method}() for resource {$className}::{$method}() does not exist"
-                    );
+                    throw new RouterAddRouteException("method {$method}() for resource {$className}::{$method}() does not exist");
                 }
 
                 // add the route by reflection
@@ -93,7 +91,21 @@ class RouteParser
     }
 
     /**
-     * @param string $functionName
+     * @param  string  $method
+     * @param  string  $base
+     * @return string
+     */
+    #[Pure] protected function getPath(string $method, string $base): string
+    {
+        return match ($method) {
+            'get', 'show', 'detail', 'details', 'update', 'put', 'patch', 'delete', 'remove' => $base.'/{id}',
+            'index', 'list', 'post', 'create' => $base,
+            default => $base,
+        };
+    }
+
+    /**
+     * @param  string  $functionName
      * @return string
      * @throws RouterAddRouteException
      */
@@ -106,20 +118,6 @@ class RouteParser
             'patch' => 'PATCH',
             'delete', 'remove' => 'DELETE',
             default => throw new RouterAddRouteException("Controller method with name {$functionName} is not allowed"),
-        };
-    }
-
-    /**
-     * @param string $method
-     * @param string $base
-     * @return string
-     */
-    #[Pure] protected function getPath(string $method, string $base): string
-    {
-        return match ($method) {
-            'get', 'show', 'detail', 'details', 'update', 'put', 'patch', 'delete', 'remove' => $base . '/{id}',
-            'index', 'list', 'post', 'create' => $base,
-            default => $base,
         };
     }
 }

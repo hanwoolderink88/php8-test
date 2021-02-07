@@ -13,26 +13,30 @@ use Psr\Http\Message\ServerRequestInterface;
 interface RequestContract extends ServerRequestInterface
 {
     /**
-     * @param string $key
+     * @param  string  $key
+     * @param  mixed|null  $fallback
      * @return mixed
      */
-    public function get(string $key): mixed;
+    public function get(string $key, mixed $fallback = null): mixed;
 
     /**
-     * @param string $key
+     * @param  string  $key
+     * @param  mixed|null  $fallback
      * @return mixed
      */
-    public function post(string $key): mixed;
+    public function post(string $key, mixed $fallback = null): mixed;
 
     /**
-     * @param string $key
+     * @param  string  $key
+     * @param  mixed|null  $fallback
      * @return mixed
      */
-    public function query(string $key): mixed;
+    public function query(string $key, mixed $fallback = null): mixed;
 
     /**
-     * @param string $key
+     * @param  string  $key
+     * @param  mixed|null  $fallback
      * @return mixed
      */
-    public function header(string $key): mixed;
+    public function header(string $key, mixed $fallback = null): mixed;
 }

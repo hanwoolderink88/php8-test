@@ -6,12 +6,15 @@ namespace TestingTimes;
 use Cache\Adapter\Apcu\ApcuCachePool;
 use Cache\Adapter\Common\AbstractCachePool;
 use Cache\Adapter\Filesystem\FilesystemCachePool;
+use Composer\Autoload\ClassMapGenerator;
 use Doctrine\Common\Cache\ApcuCache;
 use Doctrine\Common\Cache\FilesystemCache;
+use Doctrine\DBAL\DriverManager;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\ORMException;
 use Doctrine\ORM\Tools\Setup;
 use Dotenv\Dotenv;
+use Exception;
 use HanWoolderink88\Container\Container;
 use HanWoolderink88\Container\Exception\ContainerAddServiceException;
 use JsonException;
@@ -28,7 +31,6 @@ use TestingTimes\App\Controllers\OrderController;
 use TestingTimes\App\Controllers\PostController;
 use TestingTimes\App\Controllers\ProductController;
 use TestingTimes\App\Controllers\UserController;
-use TestingTimes\App\Repository\UserRepository;
 use TestingTimes\Config\Config;
 use TestingTimes\Config\Env;
 use TestingTimes\ErrorHandling\ErrorHandler;
@@ -52,8 +54,11 @@ class Kernel implements RequestHandlerInterface
      * Should go to its own class
      *
      * @throws ContainerAddServiceException
-     * @throws \Psr\Cache\InvalidArgumentException
      * @throws InvalidArgumentException
+     * @throws ORMException
+     * @throws ReflectionException
+     * @throws Routing\Exceptions\RouterAddRouteException
+     * @throws \Psr\Cache\InvalidArgumentException
      */
     public function bootstrap()
     {
@@ -62,59 +67,55 @@ class Kernel implements RequestHandlerInterface
 
         $useCache = $_SERVER['APP_CACHE_ENABLED'] === 'true';
         if ($useCache && $cachePool->hasItem('bootstrap')) {
+            /** @var ContainerInterface $container */
             $container = $cachePool->get('bootstrap');
+            $this->container = $container;
         } else {
-            $container = new Container();
+            $this->container = new Container();
 
-            $env = $this->loadEnv();
-            $config = $this->loadConfig($env);
-            $router = $this->loadRouter();
+            $this->container->addService($this->loadEnv());
+            $this->container->addService($this->loadConfig());
+            $this->container->addService($this->loadDbal());
+            $this->container->addService($this->loadOrm());
 
-            $entityManager = $this->loadPersistenceLayer($env, $config);
+            $routeMatcher = new RouteMatcher($this->loadRouter());
+            $routeMatcher->setContainer($this->container);
+            $this->container->addService($routeMatcher);
 
-            $routeMatcher = new RouteMatcher($router);
-            $routeMatcher->setContainer($container);
+            $this->autoWireContainer();
 
-            $container->addService($config);
-            $container->addService($env);
-            $container->addService($entityManager);
-            $container->addService($routeMatcher);
-            $container->addServiceReference(ErrorHandler::class);
-
-            $container->sortIndex();
-
-            // todo: add all classes in src to the container as a ref with $container->addServiceReference()
-            $container->addServiceReference(UserRepository::class);
+            $this->container->sortIndex();
 
             if ($useCache) {
-                $cachePool->save($cachePool->getItem('bootstrap')->set($container));
+                $cachePool->save($cachePool->getItem('bootstrap')->set($this->container));
             }
         }
 
-        $container->addService($cachePool);
-
-        $this->container = $container;
+        $this->container->addService($cachePool);
     }
 
     /**
-     * @param  ServerRequestInterface  $request
-     * @return ResponseInterface
-     * @throws JsonException
+     * @return AbstractCachePool
      */
-    public function handle(ServerRequestInterface $request): ResponseInterface
+    protected function loadCache(): AbstractCachePool
     {
-        $this->container->addService($request, [RequestContract::class]);
+        $fileLocation = dirname(__DIR__).'/config/cache.php';
+        if (is_file($fileLocation)) {
+            $config = include $fileLocation;
+            $driver = $config['driver'] ?? 'filesystem';
+        } else {
+            $driver = 'filesystem';
+        }
 
-        try {
-            $routeMatcher = $this->container->get(RouteMatcher::class);
+        switch ($driver) {
+            case 'apcu':
+                return new ApcuCachePool();
+            case 'filesystem':
+            default:
+                $filesystemAdapter = new Local(dirname(__DIR__).'/storage/');
+                $filesystem = new Filesystem($filesystemAdapter);
 
-            return $routeMatcher->handle($request);
-        } catch (Throwable $throwable) {
-            /** @var ErrorHandler $handler */
-            $handler = $this->container->get(ErrorHandler::class);
-
-            // todo: second param should be dynamic based on config i guess...
-            return $handler->handle($throwable, new JsonResponse(''));
+                return new FilesystemCachePool($filesystem);
         }
     }
 
@@ -130,35 +131,6 @@ class Kernel implements RequestHandlerInterface
     }
 
     /**
-     * Todo: this should be a file looup based on defined dirs in config a config file
-     *
-     * @return Router
-     * @throws Routing\Exceptions\RouterAddRouteException
-     * @throws ReflectionException
-     */
-    protected function loadRouter(): Router
-    {
-        $router = new Router();
-        $router->flushRoutes();
-        $routeParser = new RouteParser($router);
-        $routeParser->byClassMethods(IndexController::class)
-            ->byClassMethods(OrderController::class)
-            ->byResource(UserController::class)
-            ->byClassMethods(PostController::class)
-            ->byClassMethods(ProductController::class);
-
-        return $router;
-    }
-
-    /**
-     * @return Config
-     */
-    protected function loadConfig(Env $env): Config
-    {
-        return new Config($env);
-    }
-
-    /**
      * @return Env
      */
     protected function LoadEnv(): Env
@@ -167,13 +139,38 @@ class Kernel implements RequestHandlerInterface
     }
 
     /**
-     * @param  Env  $env
-     * @param  Config  $config
+     * @return Config
+     * @throws Exception
+     */
+    protected function loadConfig(): Config
+    {
+        $env = $this->container->get(Env::class);
+
+        return new Config($env);
+    }
+
+    /**
+     * @return \Doctrine\DBAL\Connection
+     * @throws \Doctrine\DBAL\Exception
+     */
+    private function loadDbal()
+    {
+        /** @var Config $config */
+        $config = $this->container->get(Config::class);
+        $connection = ['url' => $config->get('doctrine.url')];
+
+        return DriverManager::getConnection($connection);
+    }
+
+    /**
      * @return EntityManager
      * @throws ORMException
      */
-    protected function loadPersistenceLayer(Env $env, Config $config): EntityManager
+    protected function loadOrm(): EntityManager
     {
+        $env = $this->getContainer()->get(Env::class);
+        $config = $this->container->get(Config::class);
+
         if ($env->get('APP_CACHE_ENABLED')) {
             $cache = match (strtolower($config->get('cache.driver'))) {
                 'apcu' => new ApcuCache(),
@@ -203,27 +200,63 @@ class Kernel implements RequestHandlerInterface
     }
 
     /**
-     * @return AbstractCachePool
+     * Todo: this should be a file looup based on defined dirs in config a config file
+     *
+     * @return Router
+     * @throws Routing\Exceptions\RouterAddRouteException
+     * @throws ReflectionException
      */
-    private function loadCache(): AbstractCachePool
+    protected function loadRouter(): Router
     {
-        $fileLocation = dirname(__DIR__).'/config/cache.php';
-        if (is_file($fileLocation)) {
-            $config = include $fileLocation;
-            $driver = $config['driver'] ?? 'filesystem';
-        } else {
-            $driver = 'filesystem';
+        $router = new Router();
+        $router->flushRoutes();
+        $routeParser = new RouteParser($router);
+        $routeParser->byClassMethods(IndexController::class)
+            ->byClassMethods(OrderController::class)
+            ->byResource(UserController::class)
+            ->byClassMethods(PostController::class)
+            ->byClassMethods(ProductController::class);
+
+        return $router;
+    }
+
+    /**
+     * @return void
+     */
+    protected function autoWireContainer()
+    {
+        /** @var Config $config */
+        $config = $this->container->get(Config::class);
+        $directories = $config->get('container.autowire', []);
+
+        foreach ($directories as $directory) {
+            $map = ClassMapGenerator::createMap($directory);
+
+            foreach ($map as $className => $location) {
+                $this->container->addServiceReference($className);
+            }
         }
+    }
 
-        switch ($driver) {
-            case 'apcu':
-                return new ApcuCachePool();
-            case 'filesystem':
-            default:
-                $filesystemAdapter = new Local(dirname(__DIR__).'/storage/');
-                $filesystem = new Filesystem($filesystemAdapter);
+    /**
+     * @param  ServerRequestInterface  $request
+     * @return ResponseInterface
+     * @throws JsonException
+     */
+    public function handle(ServerRequestInterface $request): ResponseInterface
+    {
+        $this->container->addService($request, [RequestContract::class]);
 
-                return new FilesystemCachePool($filesystem);
+        try {
+            $routeMatcher = $this->container->get(RouteMatcher::class);
+
+            return $routeMatcher->handle($request);
+        } catch (Throwable $throwable) {
+            /** @var ErrorHandler $handler */
+            $handler = $this->container->get(ErrorHandler::class);
+
+            // todo: second param should be dynamic based on config i guess...
+            return $handler->handle($throwable, new JsonResponse(''));
         }
     }
 }

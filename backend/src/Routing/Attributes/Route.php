@@ -29,8 +29,8 @@ class Route
     protected array $routeParts = [];
 
     /**
-     * @param string $path
-     * @param string[] $methods
+     * @param  string  $path
+     * @param  string[]  $methods
      */
     public function __construct(
         protected string $path,
@@ -45,15 +45,7 @@ class Route
     }
 
     /**
-     * @return string
-     */
-    public function getPath(): string
-    {
-        return $this->path;
-    }
-
-    /**
-     * @param string $path
+     * @param  string  $path
      * @return Route
      */
     public function setPath(string $path): Route
@@ -72,7 +64,7 @@ class Route
     }
 
     /**
-     * @param string[] $methods
+     * @param  string[]  $methods
      * @return Route
      */
     public function setMethods(array $methods): Route
@@ -91,7 +83,7 @@ class Route
     }
 
     /**
-     * @param array|callable|mixed $callable
+     * @param  array|callable|mixed  $callable
      * @return Route
      */
     public function setCallable(mixed $callable): Route
@@ -102,34 +94,7 @@ class Route
     }
 
     /**
-     * @return bool
-     */
-    public function hasWildcard(): bool
-    {
-        return $this->wildcard;
-    }
-
-    /**
-     * @return RoutePart[]
-     */
-    public function getRouteParts(): array
-    {
-        return $this->routeParts;
-    }
-
-    /**
-     * @param RoutePart[] $routeParts
-     * @return Route
-     */
-    public function setRouteParts(array $routeParts): self
-    {
-        $this->routeParts = $routeParts;
-
-        return $this;
-    }
-
-    /**
-     * @param string[] $params
+     * @param  string[]  $params
      * @return string
      * @throws RouterMatchException
      */
@@ -155,5 +120,40 @@ class Route
         }
 
         return $uri;
+    }
+
+    /**
+     * @return bool
+     */
+    public function hasWildcard(): bool
+    {
+        return $this->wildcard;
+    }
+
+    /**
+     * @return RoutePart[]
+     */
+    public function getRouteParts(): array
+    {
+        return $this->routeParts;
+    }
+
+    /**
+     * @param  RoutePart[]  $routeParts
+     * @return Route
+     */
+    public function setRouteParts(array $routeParts): self
+    {
+        $this->routeParts = $routeParts;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPath(): string
+    {
+        return $this->path;
     }
 }

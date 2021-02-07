@@ -25,7 +25,7 @@ class Router
     }
 
     /**
-     * @param Route[] $routes
+     * @param  Route[]  $routes
      * @return Router
      */
     public function setRoutes(array $routes): Router
@@ -36,7 +36,7 @@ class Router
     }
 
     /**
-     * @param Route $route
+     * @param  Route  $route
      * @return Router
      */
     public function addRoute(Route $route): Router
@@ -47,7 +47,7 @@ class Router
     }
 
     /**
-     * @param Route $route
+     * @param  Route  $route
      * @return $this
      */
     public function removeRoute(Route $route): Router
@@ -68,7 +68,7 @@ class Router
     }
 
     /**
-     * @param string $routePath
+     * @param  string  $routePath
      * @return Route|null
      */
     #[Pure] public function getRouteByPath(string $routePath): ?Route

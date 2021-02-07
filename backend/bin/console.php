@@ -47,6 +47,7 @@ use Doctrine\ORM\Tools\Console\Helper\EntityManagerHelper;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Helper\HelperSet;
 use TestingTimes\Kernel;
+use TestingTimes\Persistence\Command\DebugContainerCommand;
 
 $kernel = new Kernel();
 $kernel->bootstrap();
@@ -67,6 +68,9 @@ $dependencyFactory = DependencyFactory::fromEntityManager(new ConfigurationFileW
 
 // ... register commands
 $application->addCommands([
+        // App
+    new DebugContainerCommand($container),
+
     // DBAL Commands
     new Doctrine\DBAL\Tools\Console\Command\ImportCommand(),
     new ReservedWordsCommand(),

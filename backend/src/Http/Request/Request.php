@@ -23,11 +23,11 @@ class Request implements RequestInterface, RequestContract
     use ServerRequestDecoratorTrait;
 
     /**
-     * @param string $method HTTP method
-     * @param string|UriInterface $uri URI
-     * @param array $headers Request headers
-     * @param string|null|resource|StreamInterface $body Request body
-     * @param string $version Protocol version
+     * @param  string  $method  HTTP method
+     * @param  string|UriInterface  $uri  URI
+     * @param  array  $headers  Request headers
+     * @param  string|null|resource|StreamInterface  $body  Request body
+     * @param  string  $version  Protocol version
      */
     public function __construct(string $method, $uri, array $headers = [], $body = null, string $version = '1.1')
     {
@@ -44,8 +44,8 @@ class Request implements RequestInterface, RequestContract
     }
 
     /**
-     * @param StreamInterface|string|null $body
-     * @param array $headers
+     * @param  StreamInterface|string|null  $body
+     * @param  array  $headers
      * @return StreamInterface|string|null
      */
     protected function validateBody(StreamInterface|string|null $body, array $headers)
@@ -64,6 +64,68 @@ class Request implements RequestInterface, RequestContract
     }
 
     /**
+     * @param  array  $headers
+     * @return bool
+     */
+    #[Pure] protected function isJsonRequest(array $headers): bool
+    {
+        $hasHeader = isset($headers['content-type']);
+        if (!$hasHeader) {
+            return false;
+        }
+
+        return (is_array($headers['content-type']) && in_array('application/json',
+                    $headers['content-type'])) || (is_string($headers['content-type']) && $headers['content-type'] === 'application/json');
+    }
+
+    /**
+     * @param  string  $queryString
+     * @return mixed
+     */
+    #[Pure] protected function parseQueryParamsToArray(string $queryString): array
+    {
+        parse_str($queryString, $queryArray);
+
+        return $queryArray;
+    }
+
+    /**
+     * @param  string  $key
+     * @param  null  $fallback
+     * @return mixed
+     */
+    public function get(string $key, $fallback = null): mixed
+    {
+        $found = $this->post($key, $fallback = null);
+        if ($found) {
+            return $found;
+        }
+
+        $found = $this->query($key, $fallback = null);
+        if ($found) {
+            return $found;
+        }
+
+        $found = $this->header($key, $fallback = null);
+
+        return $found;
+    }
+
+    /**
+     * @param  string  $key
+     * @param  null  $fallback
+     * @return mixed
+     */
+    public function post(string $key, $fallback = null): mixed
+    {
+        if (!$this->isJsonRequest($this->getMessage()->getHeaders())) {
+            return $fallback;
+        }
+
+        return Env::search($key, $this->getJsonBody());
+    }
+
+    /**
      * @return array
      */
     public function getJsonBody(): array
@@ -74,80 +136,22 @@ class Request implements RequestInterface, RequestContract
     }
 
     /**
-     * @param string $key
+     * @param  string  $key
+     * @param  null  $fallback
      * @return mixed
      */
-    public function get(string $key): mixed
+    public function query(string $key, $fallback = null): mixed
     {
-        $found = $this->post($key);
-        if ($found) {
-            return $found;
-        }
-
-        $found = $this->query($key);
-        if ($found) {
-            return $found;
-        }
-
-        $found = $this->header($key);
-
-        return $found;
+        return $this->getQueryParams()[$key] ?? $fallback;
     }
 
     /**
-     * @param string $key
+     * @param  string  $key
+     * @param  null  $fallback
      * @return mixed
      */
-    public function post(string $key): mixed
+    public function header(string $key, $fallback = null): mixed
     {
-        if (!$this->isJsonRequest($this->getMessage()->getHeaders())) {
-            return null;
-        }
-
-        return Env::search($key, $this->getJsonBody());
-    }
-
-    /**
-     * @param string $key
-     * @return mixed
-     */
-    public function query(string $key): mixed
-    {
-        return $this->getQueryParams()[$key] ?? null;
-    }
-
-    /**
-     * @param string $key
-     * @return mixed
-     */
-    public function header(string $key): mixed
-    {
-        return $this->getheaders()[$key] ?? null;
-    }
-
-    /**
-     * @param array $headers
-     * @return bool
-     */
-    #[Pure] protected function isJsonRequest(array $headers): bool
-    {
-        $hasHeader = isset($headers['content-type']);
-        if (!$hasHeader) {
-            return false;
-        }
-
-        return (is_array($headers['content-type']) && in_array('application/json', $headers['content-type']))
-            || (is_string($headers['content-type']) && $headers['content-type'] === 'application/json');
-    }
-
-    /**
-     * @param string $queryString
-     * @return mixed
-     */
-    #[Pure] protected function parseQueryParamsToArray(string $queryString): array
-    {
-        parse_str($queryString, $queryArray);
-
-        return $queryArray;
+        return $this->getheaders()[$key] ?? $fallback;
     }
 }

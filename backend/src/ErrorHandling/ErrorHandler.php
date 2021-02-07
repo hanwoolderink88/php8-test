@@ -24,7 +24,7 @@ class ErrorHandler
     protected Env $env;
 
     /**
-     * @param Env $env
+     * @param  Env  $env
      */
     public function __construct(Env $env)
     {
@@ -32,14 +32,14 @@ class ErrorHandler
     }
 
     /**
-     * @param Throwable $exception
-     * @param ResponseInterface|null $response
+     * @param  Throwable  $exception
+     * @param  ResponseInterface|null  $response
      * @return ResponseInterface
      * @throws \JsonException
      */
     public function handle(Throwable $exception, ?ResponseInterface $response = null): ResponseInterface
     {
-        if($response === null ){
+        if ($response === null) {
             $response = new Response();
         }
 
@@ -48,25 +48,19 @@ class ErrorHandler
             'message' => $exception->getMessage(),
         ];
 
-        if(Str::lower($this->env->get('APP_ENV')) === 'local') {
+        if (Str::lower($this->env->get('APP_ENV')) === 'local') {
             $body['file'] = $exception->getFile();
             $body['code'] = $exception->getCode();
             $body['line'] = $exception->getLine();
             $body['trace'] = $exception->getTrace();
         }
 
-        if($response instanceof JsonResponse) {
+        if ($response instanceof JsonResponse) {
             /** @var JsonResponse $response */
-            return $response
-                ->withBody($body)
-                ->withStatus($statuscode)
-                ;
+            return $response->withBody($body)->withStatus($statuscode);
         }
 
         // todo: this can be a bit better i think...
-        return $response
-            ->withBody(Stream::create($exception->__toString()))
-            ->withStatus($statuscode)
-            ;
+        return $response->withBody(Stream::create($exception->__toString()))->withStatus($statuscode);
     }
 }

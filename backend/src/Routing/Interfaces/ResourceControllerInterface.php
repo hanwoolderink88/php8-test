@@ -18,19 +18,19 @@ interface ResourceControllerInterface
     public function post(): ResponseInterface;
 
     /**
-     * @param string $id
+     * @param  string  $id
      * @return ResponseInterface
      */
     public function get(string $id): ResponseInterface;
 
     /**
-     * @param string $id
+     * @param  string  $id
      * @return ResponseInterface
      */
     public function update(string $id): ResponseInterface;
 
     /**
-     * @param string $id
+     * @param  string  $id
      * @return ResponseInterface
      */
     public function delete(string $id): ResponseInterface;

@@ -44,18 +44,18 @@ abstract class Repository
         return $this->em->getRepository($this->getModelName());
     }
 
-    public function getNewQuery()
+    /**
+     * @return string
+     * @throws Exception
+     */
+    protected function getModelName(): string
     {
-        return $this->em->createQueryBuilder();
-    }
-
-    public function getQuery()
-    {
-        if ($this->query === null) {
-            $this->query = $this->getNewQuery();
+        if (!isset(static::$model)) {
+            $className = static::class;
+            throw new Exception("{$className}::model property is not set set it in the class.");
         }
 
-        return $this->query;
+        return static::$model;
     }
 
     public function reset()
@@ -69,11 +69,6 @@ abstract class Repository
         $page = max((int)$page, 1);
         $limit = $limit ?? ((int)$this->request->query('limit') ? $this->request->query('limit') : 20);
         $offset = $page === 1 ? 0 : (($page - 1) * $limit);
-
-        // todo: needed for return:
-        // - max count based on criteria
-        // - the data : done
-        // - the meta
 
         if ($criteria) {
             $this->applyCriteria($this->getQuery(), $criteria);
@@ -106,25 +101,46 @@ abstract class Repository
     {
         if (is_array($criteria)) {
             $i = 0;
-            foreach ($criteria as $criterion) {
-                $query->where("T.{$criterion[0]} {$criterion[1]} :v{$i}");
-                $query->setParameter("v{$i}", $criterion[2]);
+            foreach ($criteria as $name => $value) {
+                [$parsedValue, $operator] = $this->parseValueAndOperator($value);
+
+                $query->andWhere("T.{$name} {$operator} :v{$i}");
+                $query->setParameter("v{$i}", $parsedValue);
                 $i++;
             }
         }
     }
 
     /**
-     * @return string
-     * @throws Exception
+     * @param  mixed  $value
+     * @return string[] [$value, $operator]
      */
-    protected function getModelName(): string
+    protected function parseValueAndOperator(mixed $value): array
     {
-        if (!isset(static::$model)) {
-            $className = static::class;
-            throw new Exception("{$className}::model property is not set set it in the class.");
+        $operator = '=';
+        $parsedValue = $value;
+
+        if (strpos($value, '!') === 1) {
+            $operator = '<>';
+            $parsedValue = substr($value, 1);
+        } elseif (strpos($value, '%') !== false) {
+            $operator = 'LIKE';
         }
 
-        return static::$model;
+        return [$parsedValue, $operator];
+    }
+
+    public function getQuery()
+    {
+        if ($this->query === null) {
+            $this->query = $this->getNewQuery();
+        }
+
+        return $this->query;
+    }
+
+    public function getNewQuery()
+    {
+        return $this->em->createQueryBuilder();
     }
 }

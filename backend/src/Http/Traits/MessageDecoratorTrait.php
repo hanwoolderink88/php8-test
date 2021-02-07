@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace TestingTimes\Http\Traits;
 
-
 use Psr\Http\Message\MessageInterface;
 use Psr\Http\Message\StreamInterface;
 

@@ -23,24 +23,9 @@ trait RequestDecoratorTrait
     }
 
     /**
-     * Returns the decorated request.
-     * Since the underlying Request is immutable as well
-     * exposing it is not an issue, because it's state cannot be altered
-     *
-     * @return RequestInterface
-     */
-    #[Pure] public function getRequest(): RequestInterface
-    {
-        /** @var RequestInterface $message */
-        $message = $this->getMessage();
-
-        return $message;
-    }
-
-    /**
      * Exchanges the underlying request with another.
      *
-     * @param RequestInterface $request
+     * @param  RequestInterface  $request
      * @return self
      */
     public function withRequest(RequestInterface $request): self
@@ -57,6 +42,21 @@ trait RequestDecoratorTrait
     public function getRequestTarget(): string
     {
         return $this->getRequest()->getRequestTarget();
+    }
+
+    /**
+     * Returns the decorated request.
+     * Since the underlying Request is immutable as well
+     * exposing it is not an issue, because it's state cannot be altered
+     *
+     * @return RequestInterface
+     */
+    #[Pure] public function getRequest(): RequestInterface
+    {
+        /** @var RequestInterface $message */
+        $message = $this->getMessage();
+
+        return $message;
     }
 
     /**
