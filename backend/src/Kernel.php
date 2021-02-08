@@ -58,19 +58,23 @@ class Kernel implements RequestHandlerInterface
      * @throws ORMException
      * @throws ReflectionException
      * @throws Routing\Exceptions\RouterAddRouteException
+     * @throws \Doctrine\DBAL\Exception
      * @throws \Psr\Cache\InvalidArgumentException
      */
     public function bootstrap()
     {
         $cachePool = $this->loadCache();
-        $this->loadDotEnv();
+        $useCache = false; //$_SERVER['APP_CACHE_ENABLED'] === 'true';
 
-        $useCache = $_SERVER['APP_CACHE_ENABLED'] === 'true';
         if ($useCache && $cachePool->hasItem('bootstrap')) {
+            $this->loadDotEnv($cachePool, $useCache);
+
             /** @var ContainerInterface $container */
             $container = $cachePool->get('bootstrap');
             $this->container = $container;
         } else {
+            $this->loadDotEnv($cachePool, $useCache);
+
             $this->container = new Container();
 
             $this->container->addService($this->loadEnv());
@@ -99,7 +103,7 @@ class Kernel implements RequestHandlerInterface
      */
     protected function loadCache(): AbstractCachePool
     {
-        $fileLocation = dirname(__DIR__).'/config/cache.php';
+        $fileLocation = dirname(__DIR__) . '/config/cache.php';
         if (is_file($fileLocation)) {
             $config = include $fileLocation;
             $driver = $config['driver'] ?? 'filesystem';
@@ -112,7 +116,7 @@ class Kernel implements RequestHandlerInterface
                 return new ApcuCachePool();
             case 'filesystem':
             default:
-                $filesystemAdapter = new Local(dirname(__DIR__).'/storage/');
+                $filesystemAdapter = new Local(dirname(__DIR__) . '/storage/');
                 $filesystem = new Filesystem($filesystemAdapter);
 
                 return new FilesystemCachePool($filesystem);
@@ -120,14 +124,39 @@ class Kernel implements RequestHandlerInterface
     }
 
     /**
-     * @return void
+     * @param AbstractCachePool $cachePool
+     * @param bool $useCache
+     * @return array|null
+     * @throws InvalidArgumentException
      */
-    protected function loadDotEnv(): void
+    protected function loadDotEnv(AbstractCachePool $cachePool, bool $useCache): ?array
     {
-        if (file_exists(dirname(__DIR__).'/.env')) {
-            $dotenv = Dotenv::createImmutable(dirname(__DIR__));
-            $dotenv->load();
+        // load the dotenv vars from cache
+        if ($useCache) {
+            $vars = $cachePool->get('envvars');
+            if ($vars) {
+                // todo
+                foreach ($vars as $key => $value) {
+                    $_SERVER[$key] = $value;
+                    $_ENV[$key] = $value;
+                }
+            }
         }
+
+        // load from file
+        if (!$useCache || !isset($vars)) {
+            if (file_exists(dirname(__DIR__) . '/.env')) {
+                $dotenv = Dotenv::createImmutable(dirname(__DIR__));
+                $vars = $dotenv->load();
+
+                $cachePoolItem = $cachePool->getItem('envvars')->set($vars);
+                $cachePool->save($cachePoolItem);
+
+                return $vars;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -174,13 +203,13 @@ class Kernel implements RequestHandlerInterface
         if ($env->get('APP_CACHE_ENABLED')) {
             $cache = match (strtolower($config->get('cache.driver'))) {
                 'apcu' => new ApcuCache(),
-                default => new FilesystemCache(dirname(__DIR__).'/storage/cache'),
+                default => new FilesystemCache(dirname(__DIR__) . '/storage/cache'),
             };
         } else {
             $cache = null;
         }
 
-        $emConfig = Setup::createAnnotationMetadataConfiguration([__DIR__."/App/Entities"],
+        $emConfig = Setup::createAnnotationMetadataConfiguration([__DIR__ . "/App/Entities"],
             $config->get('doctrine.dev_mode'),
             $config->get('doctrine.proxy_dir'),
             $cache,
@@ -239,7 +268,7 @@ class Kernel implements RequestHandlerInterface
     }
 
     /**
-     * @param  ServerRequestInterface  $request
+     * @param ServerRequestInterface $request
      * @return ResponseInterface
      * @throws JsonException
      */
